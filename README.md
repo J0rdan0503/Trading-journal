@@ -1,1 +1,1 @@
-# 💰Trading-journal💰
+# Trading-journal

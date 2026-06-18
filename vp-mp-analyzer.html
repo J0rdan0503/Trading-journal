@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VP + MP 走势分析工具</title>
+<style>
+:root{--bg:#0b0e14;--panel:#131720;--border:#1e2535;--gold:#f0b429;--gold-dim:#7a5c14;--bull:#26a69a;--bear:#ef5350;--neutral:#7986cb;--text:#cdd6f4;--muted:#6b7280;--label:#8892a4;--sp:#e879f9;--today:#38bdf8;--week:#a78bfa;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:16px;}
+header{display:flex;align-items:center;gap:12px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:14px;}
+.logo{width:36px;height:36px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#000;flex-shrink:0;}
+header h1{font-size:17px;font-weight:700;}
+header p{font-size:11px;color:var(--muted);margin-top:2px;}
+.inst-row{display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;}
+.inst-btn{background:var(--panel);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:all .18s;flex-shrink:0;}
+.inst-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(240,180,41,.08);}
+.inst-hint{font-size:10px;color:var(--muted);margin-bottom:12px;padding:6px 10px;background:var(--panel);border-radius:6px;border-left:2px solid var(--gold-dim);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:680px){.grid2{grid-template-columns:1fr;}}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:680px){.grid3{grid-template-columns:1fr;}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:12px;}
+.card.vp-card{border-color:rgba(240,180,41,.25);}
+.card.mp-card{border-color:rgba(232,121,249,.25);}
+.card.week-card{border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.03);}
+.card.wmp-card{border-color:rgba(232,121,249,.2);background:rgba(232,121,249,.02);}
+.card.today-card{border-color:rgba(56,189,248,.25);background:rgba(56,189,248,.03);}
+.ctitle{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.ctitle.vp{color:var(--gold);}.ctitle.mp{color:var(--sp);}.ctitle.week{color:var(--week);}.ctitle.wmp{color:var(--sp);opacity:.8;}.ctitle.td{color:var(--today);}
+.note{font-size:10px;color:var(--muted);margin-bottom:9px;padding:5px 8px;border-radius:5px;line-height:1.5;}
+.note.gold{background:rgba(240,180,41,.06);border-left:2px solid var(--gold-dim);}
+.note.sp{background:rgba(232,121,249,.06);border-left:2px solid rgba(232,121,249,.3);}
+.note.week{background:rgba(167,139,250,.06);border-left:2px solid rgba(167,139,250,.3);}
+.field{margin-bottom:9px;}
+label{display:block;font-size:11px;color:var(--label);margin-bottom:4px;font-weight:500;}
+.opt{color:var(--muted);font-size:10px;margin-left:4px;}
+.req{color:var(--bear);font-size:10px;margin-left:4px;}
+input[type="number"],select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:14px;padding:8px 10px;outline:none;transition:border-color .2s;}
+input[type="number"]:focus,select:focus{border-color:var(--gold);}
+select option{background:var(--panel);}
+.irow{display:flex;gap:8px;}.irow .field{flex:1;margin-bottom:0;}
+.shape-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.sbtn{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:10px;font-weight:600;padding:8px 4px;cursor:pointer;text-align:center;transition:all .18s;line-height:1.4;}
+.sbtn.active{border-color:var(--gold);color:var(--gold);background:rgba(240,180,41,.07);}
+.sbtn .si{font-size:15px;display:block;margin-bottom:1px;}
+.auto-btn{width:100%;background:rgba(240,180,41,.1);border:1px dashed var(--gold-dim);border-radius:7px;color:var(--gold);font-size:12px;font-weight:700;padding:8px;cursor:pointer;margin-bottom:8px;transition:all .18s;}
+.auto-btn:hover{background:rgba(240,180,41,.18);border-style:solid;}
+.auto-res{font-size:11px;padding:6px 9px;border-radius:6px;margin-bottom:8px;display:none;}
+.auto-res.show{display:block;background:rgba(240,180,41,.08);border:1px solid var(--gold-dim);color:var(--gold);}
+.ib-badge{font-size:10px;padding:4px 8px;border-radius:5px;margin-top:4px;display:none;}
+.ib-badge.narrow{background:rgba(240,180,41,.1);color:var(--gold);border:1px solid var(--gold-dim);}
+.ib-badge.normal{background:rgba(121,134,203,.1);color:var(--neutral);border:1px solid rgba(121,134,203,.3);}
+.ib-badge.wide{background:rgba(38,166,154,.1);color:var(--bull);border:1px solid rgba(38,166,154,.3);}
+.today-ib-res{font-size:11px;padding:8px 10px;border-radius:7px;margin-top:6px;display:none;line-height:1.6;}
+.today-ib-res.show{display:block;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);color:var(--today);}
+.sp-add{background:none;border:1px dashed var(--border);border-radius:6px;color:var(--muted);font-size:12px;padding:7px;cursor:pointer;width:100%;margin-top:4px;transition:all .15s;}
+.sp-add:hover{border-color:var(--sp);color:var(--sp);}
+.sp-del{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:4px;flex-shrink:0;}
+.sp-del:hover{color:var(--bear);}
+.close-hint{display:none;font-size:10px;color:var(--bull);margin-top:4px;padding:4px 8px;background:rgba(38,166,154,.08);border-radius:5px;border:1px solid rgba(38,166,154,.2);}
+.analyze-btn{width:100%;background:var(--gold);color:#000;border:none;border-radius:10px;font-size:15px;font-weight:800;padding:14px;cursor:pointer;margin-bottom:8px;letter-spacing:.04em;transition:opacity .2s;}
+.analyze-btn:hover{opacity:.88;}
+.ai-btn{width:100%;background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(232,121,249,.15));border:1px solid rgba(167,139,250,.4);border-radius:10px;color:#c4b5fd;font-size:14px;font-weight:700;padding:13px;cursor:pointer;letter-spacing:.03em;transition:all .2s;}
+.ai-btn:hover{background:linear-gradient(135deg,rgba(167,139,250,.28),rgba(232,121,249,.28));}
+/* Results */
+#result{display:none;margin-top:16px;}
+.bias-bar{border-radius:12px;padding:15px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.bias-bar.bull{background:rgba(38,166,154,.12);border:1px solid rgba(38,166,154,.35);}
+.bias-bar.bear{background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.35);}
+.bias-bar.neutral{background:rgba(121,134,203,.12);border:1px solid rgba(121,134,203,.35);}
+.bias-icon{font-size:26px;}
+.bias-title{font-size:17px;font-weight:800;}
+.bias-title.bull{color:var(--bull);}.bias-title.bear{color:var(--bear);}.bias-title.neutral{color:var(--neutral);}
+.bias-sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.conf{margin-left:auto;text-align:center;flex-shrink:0;}
+.conf .pct{font-size:22px;font-weight:800;color:var(--gold);}
+.conf .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;}
+.mtf-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mtf-card{border-radius:9px;padding:10px;text-align:center;border:1px solid var(--border);}
+.mtf-card .mn{font-size:9px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;color:var(--label);}
+.mtf-card .mv{font-size:13px;font-weight:800;}
+.mtf-card .ms{font-size:9px;margin-top:2px;color:var(--muted);}
+.mtf-card.bull{background:rgba(38,166,154,.1);border-color:rgba(38,166,154,.3);}.mtf-card.bull .mv{color:var(--bull);}
+.mtf-card.bear{background:rgba(239,83,80,.1);border-color:rgba(239,83,80,.3);}.mtf-card.bear .mv{color:var(--bear);}
+.mtf-card.neutral{background:rgba(121,134,203,.1);border-color:rgba(121,134,203,.3);}.mtf-card.neutral .mv{color:var(--neutral);}
+.trade-result{background:var(--panel);border:1px solid rgba(240,180,41,.3);border-radius:12px;padding:14px;margin-bottom:12px;}
+.trade-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:10px;}
+.trade-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;}
+.tcard{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.tcard .tn{font-size:9px;color:var(--label);text-transform:uppercase;margin-bottom:3px;}
+.tcard .tv{font-size:15px;font-weight:800;}
+.tcard .ts{font-size:9px;color:var(--muted);margin-top:2px;}
+.tcard.entry .tv{color:var(--gold);}.tcard.sl .tv{color:var(--bear);}.tcard.tp .tv{color:var(--bull);}.tcard.rr .tv{color:var(--week);}
+.rr-bar{height:7px;border-radius:4px;overflow:hidden;display:flex;margin-top:8px;}
+.rr-bar .rs{background:var(--bear);}.rr-bar .rw{background:var(--bull);}
+.levels-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+.lcard{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:9px;text-align:center;}
+.lcard .ln{font-size:8px;color:var(--label);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+.lcard .lv{font-size:13px;font-weight:700;}
+.lcard .lr{font-size:8px;margin-top:2px;}
+.lcard.sup .lv{color:var(--bull);}.lcard.sup .lr{color:var(--bull);}
+.lcard.res .lv{color:var(--bear);}.lcard.res .lr{color:var(--bear);}
+.lcard.poc .lv{color:var(--gold);}.lcard.poc .lr{color:var(--gold);}
+.lcard.spc .lv{color:var(--sp);}.lcard.spc .lr{color:var(--sp);}
+.lcard.tdy .lv{color:var(--today);}.lcard.tdy .lr{color:var(--today);}
+.lcard.wk .lv{color:var(--week);}.lcard.wk .lr{color:var(--week);}
+.sp-panel{background:rgba(232,121,249,.07);border:1px solid rgba(232,121,249,.25);border-radius:9px;padding:11px 13px;margin-bottom:10px;}
+.sp-panel-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sp);margin-bottom:7px;}
+.sp-item{font-size:12px;color:var(--text);margin-bottom:5px;display:flex;gap:7px;align-items:flex-start;}
+.sp-badge{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;flex-shrink:0;margin-top:2px;}
+.sp-badge.above{background:rgba(239,83,80,.2);color:var(--bear);}
+.sp-badge.below{background:rgba(38,166,154,.2);color:var(--bull);}
+.sp-badge.near{background:rgba(232,121,249,.2);color:var(--sp);}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label);margin:12px 0 7px;}
+.sc-list{display:flex;flex-direction:column;gap:7px;}
+.sc{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;}
+.sc .si{font-size:14px;flex-shrink:0;margin-top:1px;}
+.sc .st{font-size:12px;font-weight:600;color:var(--text);}
+.sc .sd{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.tag-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:4px;}
+.tag.bull{background:rgba(38,166,154,.18);color:var(--bull);}
+.tag.bear{background:rgba(239,83,80,.18);color:var(--bear);}
+.tag.neutral{background:rgba(121,134,203,.18);color:var(--neutral);}
+.tag.gold{background:rgba(240,180,41,.18);color:var(--gold);}
+.tag.today{background:rgba(56,189,248,.18);color:var(--today);}
+.tag.week{background:rgba(167,139,250,.18);color:var(--week);}
+/* AI prompt box */
+.ai-box{background:linear-gradient(135deg,rgba(167,139,250,.08),rgba(232,121,249,.08));border:1px solid rgba(167,139,250,.3);border-radius:12px;padding:15px;margin-bottom:12px;display:none;}
+.ai-box-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#c4b5fd;margin-bottom:8px;}
+.ai-box-desc{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;}
+.ai-prompt-text{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:11px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:200px;overflow-y:auto;margin-bottom:10px;}
+.copy-prompt-btn{width:100%;background:rgba(167,139,250,.2);border:1px solid rgba(167,139,250,.4);border-radius:8px;color:#c4b5fd;font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .2s;}
+.copy-prompt-btn:hover{background:rgba(167,139,250,.35);}
+.warn-box{border-radius:9px;padding:10px 13px;margin-bottom:10px;font-size:12px;line-height:1.6;}
+.warn-box.conflict{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.3);color:var(--bear);}
+.warn-box.align{background:rgba(38,166,154,.1);border:1px solid rgba(38,166,154,.3);color:var(--bull);}
+.today-alert{border-radius:9px;padding:10px 13px;margin-bottom:10px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.07);}
+.today-alert-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--today);margin-bottom:5px;}
+.today-alert-b{font-size:12px;color:var(--text);line-height:1.6;}
+.vp-vis{display:flex;gap:3px;align-items:flex-end;height:95px;padding:8px;background:var(--bg);border-radius:8px;border:1px solid var(--border);}
+.vp-bar{background:rgba(240,180,41,.3);border-radius:2px 2px 0 0;flex-shrink:0;width:7px;}
+.vp-bar.poc{background:var(--gold);}.vp-bar.va{background:rgba(240,180,41,.5);}
+.mp-vis{font-family:monospace;font-size:10px;color:var(--text);background:var(--bg);border-radius:8px;border:1px solid var(--border);padding:8px 11px;line-height:1.7;overflow-x:auto;white-space:pre;}
+.share-btn{width:100%;background:rgba(240,180,41,.1);border:1px solid var(--gold-dim);border-radius:10px;color:var(--gold);font-size:13px;font-weight:700;padding:11px;cursor:pointer;margin-top:6px;transition:all .2s;}
+.share-btn:hover{background:rgba(240,180,41,.2);}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:flex-end;justify-content:center;}
+.modal.show{display:flex;}
+.modal-box{background:var(--panel);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;}
+.modal-box h3{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--gold);}
+.share-text{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;line-height:1.7;color:var(--text);white-space:pre-wrap;margin-bottom:10px;max-height:300px;overflow-y:auto;}
+.copy-btn{width:100%;background:var(--gold);color:#000;border:none;border-radius:8px;font-size:14px;font-weight:800;padding:12px;cursor:pointer;}
+.close-modal{background:none;border:none;color:var(--muted);font-size:13px;padding:8px;cursor:pointer;width:100%;margin-top:6px;}
+.divider{height:1px;background:var(--border);margin:12px 0;}
+.footer{font-size:10px;color:var(--muted);text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+
+<!-- ===== LOGIN OVERLAY ===== -->
+<div id="loginOverlay" style="position:fixed;inset:0;background:#0b0e14;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:360px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:52px;height:52px;background:#f0b429;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#000;margin:0 auto 12px;">VP</div>
+      <div style="font-size:20px;font-weight:800;color:#cdd6f4;">VP + MP 分析器</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:4px;">输入用户名，所有设备数据自动同步</div>
+    </div>
+    <div style="font-size:11px;color:#8892a4;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">用户名</div>
+    <input id="loginInput" type="text" placeholder="例：j0rdan" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      style="width:100%;background:#131720;border:1px solid #1e2535;border-radius:10px;color:#cdd6f4;font-size:16px;padding:12px 14px;outline:none;text-align:center;letter-spacing:1px;font-weight:600;margin-bottom:8px;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="font-size:11px;color:#6b7280;text-align:center;margin-bottom:16px;line-height:1.6;">和复盘工具使用同一个用户名<br>周线数据自动载入，无需密码</div>
+    <button onclick="doLogin()" style="width:100%;padding:13px;background:#f0b429;border:none;border-radius:10px;color:#000;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.04em;">进入 →</button>
+    <div id="loginErr" style="font-size:12px;color:#ef5350;text-align:center;margin-top:8px;display:none;"></div>
+  </div>
+</div>
+
+<!-- ===== SUPABASE STATUS BAR ===== -->
+<div id="sbBar" style="display:none;background:#131720;border:1px solid #1e2535;border-radius:8px;padding:8px 12px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:8px;">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="width:7px;height:7px;border-radius:50%;background:#26a69a;box-shadow:0 0 6px #26a69a;flex-shrink:0;"></div>
+    <span style="font-size:12px;color:#cdd6f4;">已连接：<span id="sbUser" style="color:#f0b429;font-weight:700;"></span></span>
+    <span id="sbLastSave" style="font-size:10px;color:#6b7280;"></span>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button onclick="saveWeeklyData()" id="saveWeekBtn" style="font-size:11px;font-weight:700;padding:5px 10px;background:rgba(240,180,41,.12);border:1px solid rgba(240,180,41,.35);border-radius:6px;color:#f0b429;cursor:pointer;">💾 保存本周数据</button>
+    <button onclick="loadWeeklyData()" style="font-size:11px;font-weight:700;padding:5px 10px;background:rgba(38,166,154,.1);border:1px solid rgba(38,166,154,.3);border-radius:6px;color:#26a69a;cursor:pointer;">🔄 重新载入</button>
+    <button onclick="doLogout()" style="font-size:11px;padding:5px 8px;background:none;border:1px solid #1e2535;border-radius:6px;color:#6b7280;cursor:pointer;">退出</button>
+  </div>
+</div>
+
+<header>
+  <div class="logo">VP</div>
+  <div>
+    <h1>VP + MP 走势分析器</h1>
+    <p>昨日 + 周线 多框架 · 自动推算入场 · AI提示词生成</p>
+  </div>
+</header>
+
+<div class="inst-row" id="instRow">
+  <div class="inst-btn active" data-inst="GOLD">🥇 Gold</div>
+  <div class="inst-btn" data-inst="BTC">₿ BTC</div>
+  <div class="inst-btn" data-inst="ETH">Ξ ETH</div>
+  <div class="inst-btn" data-inst="DJ30">📊 DJ30</div>
+  <div class="inst-btn" data-inst="SP500">📈 SP500</div>
+</div>
+<div class="inst-hint" id="instHint">🥇 Gold (XAUUSD) — IB 窄&lt;10pt｜正常10–25pt｜宽&gt;25pt</div>
+
+<!-- ===== 昨日 VP + MP ===== -->
+<div class="grid2">
+  <div class="card vp-card">
+    <div class="ctitle vp"><span class="dot" style="background:var(--gold)"></span>昨日 Volume Profile（VP）</div>
+    <div class="note gold">成交量维度 · POC=成交量最大价 · VAH/VAL=70%成交量边界</div>
+    <div class="irow" style="margin-bottom:9px">
+      <div class="field"><label>VP VAH</label><input type="number" id="vah" placeholder="价值区上沿" step="0.01" oninput="onVPInput()"></div>
+      <div class="field"><label>VP VAL</label><input type="number" id="val" placeholder="价值区下沿" step="0.01" oninput="onVPInput()"></div>
+    </div>
+    <div class="field"><label>VP POC</label><input type="number" id="poc" placeholder="成交量最大价" step="0.01" oninput="onVPInput()"></div>
+    <div class="field">
+      <label>昨日K线 <span class="opt">自动识别形态</span></label>
+      <div class="irow" style="margin-bottom:6px">
+        <div class="field"><input type="number" id="yhigh" placeholder="昨高" step="0.01" oninput="onVPInput()"></div>
+        <div class="field"><input type="number" id="ylow" placeholder="昨低" step="0.01" oninput="onVPInput()"></div>
+      </div>
+      <div class="irow">
+        <div class="field"><input type="number" id="yopen" placeholder="昨开" step="0.01" oninput="onVPInput()"></div>
+        <div class="field"><input type="number" id="yclose" placeholder="昨收" step="0.01" oninput="onVPInput()"></div>
+      </div>
+    </div>
+    <button class="auto-btn" onclick="autoDetect()">🔍 自动识别 VP 形态 + 收盘位置</button>
+    <div class="auto-res" id="autoRes"></div>
+    <div class="field">
+      <label>VP 形态</label>
+      <div class="shape-grid" id="vpShape">
+        <div class="sbtn active" data-val="D"><span class="si">🅓</span>D形<br><small style="color:var(--muted);font-size:9px">均衡</small></div>
+        <div class="sbtn" data-val="P"><span class="si">🅟</span>P形<br><small style="color:var(--muted);font-size:9px">底细尾↑</small></div>
+        <div class="sbtn" data-val="b"><span class="si">🅑</span>b形<br><small style="color:var(--muted);font-size:9px">顶细尾↓</small></div>
+        <div class="sbtn" data-val="B"><span class="si">🅑</span>B形<br><small style="color:var(--muted);font-size:9px">双分布</small></div>
+        <div class="sbtn" data-val="Thin"><span class="si">📊</span>Thin<br><small style="color:var(--muted);font-size:9px">趋势延续</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mp-card">
+    <div class="ctitle mp"><span class="dot" style="background:var(--sp)"></span>昨日 Market Profile（MP）</div>
+    <div class="note sp">时间维度 · POC=TPO最多价 · VAH/VAL=70%TPO边界 · 与VP数值不同</div>
+    <div class="irow" style="margin-bottom:9px">
+      <div class="field"><label>MP VAH</label><input type="number" id="mpvah" placeholder="70%TPO上沿" step="0.01"></div>
+      <div class="field"><label>MP VAL</label><input type="number" id="mpval" placeholder="70%TPO下沿" step="0.01"></div>
+    </div>
+    <div class="field"><label>MP POC</label><input type="number" id="mpoc" placeholder="TPO最多价" step="0.01"></div>
+    <div class="irow" style="margin-bottom:4px">
+      <div class="field"><label>昨日IB高点 <span class="opt">可选</span></label><input type="number" id="ibh" placeholder="首小时最高" step="0.01" oninput="calcIB('ibh','ibl','ibBadge')"></div>
+      <div class="field"><label>昨日IB低点 <span class="opt">可选</span></label><input type="number" id="ibl" placeholder="首小时最低" step="0.01" oninput="calcIB('ibh','ibl','ibBadge')"></div>
+    </div>
+    <div class="ib-badge" id="ibBadge"></div>
+    <div class="field" style="margin-top:8px">
+      <label>昨日 Single Print <span class="opt">最多3个</span></label>
+      <div class="note sp" style="margin-bottom:6px;margin-top:4px">TPO只出现1次的价格带=价格真空，填最高和最低价</div>
+      <div id="spList"></div>
+      <button class="sp-add" onclick="addSP('spList','spAddBtn',spStore)" id="spAddBtn">＋ 添加 Single Print 区间</button>
+    </div>
+    <div class="field">
+      <label>昨日收盘位置 <span class="opt">填昨收后自动选</span></label>
+      <select id="closePos">
+        <option value="above_vah">VP VAH 上方（强势）</option>
+        <option value="in_va_top">VP VA内 上半段</option>
+        <option value="at_poc" selected>接近 VP POC</option>
+        <option value="in_va_bot">VP VA内 下半段</option>
+        <option value="below_val">VP VAL 下方（弱势）</option>
+      </select>
+      <div class="close-hint" id="closeHint"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 周线 VP + MP ===== -->
+<div class="grid2">
+  <div class="card week-card">
+    <div class="ctitle week"><span class="dot" style="background:var(--week)"></span>上周 Volume Profile（VP）</div>
+    <div class="note week">⚠️ 填「上一周」已收盘完整的数据，本周仍在变动中不适合填入 · 提供更大级别支撑阻力框架</div>
+    <div class="irow" style="margin-bottom:9px">
+      <div class="field"><label>周线 VP VAH</label><input type="number" id="w_vah" placeholder="周线价值区上沿" step="0.01"></div>
+      <div class="field"><label>周线 VP VAL</label><input type="number" id="w_val" placeholder="周线价值区下沿" step="0.01"></div>
+    </div>
+    <div class="field"><label>周线 VP POC</label><input type="number" id="w_poc" placeholder="周线成交量最大价" step="0.01"></div>
+    <div class="field">
+      <label>周线VP形态</label>
+      <div class="shape-grid" id="wvpShape">
+        <div class="sbtn active" data-val="D"><span class="si">🅓</span>D形<br><small style="color:var(--muted);font-size:9px">均衡</small></div>
+        <div class="sbtn" data-val="P"><span class="si">🅟</span>P形<br><small style="color:var(--muted);font-size:9px">底细尾↑</small></div>
+        <div class="sbtn" data-val="b"><span class="si">🅑</span>b形<br><small style="color:var(--muted);font-size:9px">顶细尾↓</small></div>
+        <div class="sbtn" data-val="B"><span class="si">🅑</span>B形<br><small style="color:var(--muted);font-size:9px">双分布</small></div>
+        <div class="sbtn" data-val="Thin"><span class="si">📊</span>Thin<br><small style="color:var(--muted);font-size:9px">趋势延续</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card wmp-card">
+    <div class="ctitle wmp"><span class="dot" style="background:var(--sp);opacity:.8"></span>上周 Market Profile（MP）</div>
+    <div class="note sp">⚠️ 填「上一周」数据 · IB=上周首日首小时 · Single Print为上周真空</div>
+    <div class="irow" style="margin-bottom:9px">
+      <div class="field"><label>周线 MP VAH</label><input type="number" id="w_mpvah" placeholder="周线70%TPO上沿" step="0.01"></div>
+      <div class="field"><label>周线 MP VAL</label><input type="number" id="w_mpval" placeholder="周线70%TPO下沿" step="0.01"></div>
+    </div>
+    <div class="field"><label>周线 MP POC</label><input type="number" id="w_mpoc" placeholder="周线TPO最多价" step="0.01"></div>
+    <div class="irow" style="margin-bottom:4px">
+      <div class="field"><label>周线 IB 高点 <span class="opt">可选</span></label><input type="number" id="w_ibh" placeholder="周首日首小时高" step="0.01" oninput="calcIB('w_ibh','w_ibl','wibBadge')"></div>
+      <div class="field"><label>周线 IB 低点 <span class="opt">可选</span></label><input type="number" id="w_ibl" placeholder="周首日首小时低" step="0.01" oninput="calcIB('w_ibh','w_ibl','wibBadge')"></div>
+    </div>
+    <div class="ib-badge" id="wibBadge"></div>
+    <div class="field" style="margin-top:8px">
+      <label>周线 Single Print <span class="opt">最多3个</span></label>
+      <div class="note sp" style="margin-bottom:6px;margin-top:4px">周线级别价格真空带</div>
+      <div id="wspList"></div>
+      <button class="sp-add" onclick="addSP('wspList','wspAddBtn',wspStore)" id="wspAddBtn">＋ 添加周线 Single Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 今日数据 ===== -->
+<div class="card today-card">
+  <div class="ctitle td"><span class="dot" style="background:var(--today)"></span>今日数据</div>
+  <div class="grid3" style="margin-bottom:0">
+    <div class="field" style="margin-bottom:0"><label>今日开盘价 <span class="req">必填</span></label><input type="number" id="open" placeholder="今日开盘" step="0.01"></div>
+    <div class="field" style="margin-bottom:0"><label>今日IB高点 <span class="opt">盘中填</span></label><input type="number" id="tibh" placeholder="首小时最高" step="0.01" oninput="calcTodayIB()"></div>
+    <div class="field" style="margin-bottom:0"><label>今日IB低点 <span class="opt">盘中填</span></label><input type="number" id="tibl" placeholder="首小时最低" step="0.01" oninput="calcTodayIB()"></div>
+  </div>
+  <div class="today-ib-res" id="todayIBRes"></div>
+</div>
+
+<button class="analyze-btn" onclick="analyze()">⚡ 逻辑分析 + 自动推算入场方案</button>
+<button class="ai-btn" onclick="genAIPrompt()">✨ 生成 AI 分析提示词（复制后问 Claude）</button>
+
+<!-- ===== RESULT ===== -->
+<div id="result">
+  <div class="divider"></div>
+  <div class="sec-title">多时间框架偏向</div>
+  <div class="mtf-bar" id="mtfBar"></div>
+  <div id="biasBar" class="bias-bar">
+    <div class="bias-icon" id="biasIcon"></div>
+    <div style="flex:1;min-width:0">
+      <div id="biasTitle" class="bias-title"></div>
+      <div id="biasSub" class="bias-sub"></div>
+    </div>
+    <div class="conf"><div class="pct" id="confPct"></div><div class="lbl">置信度</div></div>
+  </div>
+  <div id="trendWarn" style="display:none"></div>
+  <div class="tag-row" id="tagRow"></div>
+  <div id="todayAlert" style="display:none;margin-top:10px"></div>
+  <div class="sec-title">关键价位汇总</div>
+  <div class="levels-row" id="levelsRow"></div>
+  <div id="spPanel" style="display:none"></div>
+  <div id="tradeResult" style="display:none"></div>
+  <!-- AI Prompt Box -->
+  <div class="ai-box" id="aiBox">
+    <div class="ai-box-title">✨ AI 分析提示词</div>
+    <div class="ai-box-desc">复制下方提示词，粘贴给 Claude（claude.ai）即可获得专业 AI 分析报告</div>
+    <div class="ai-prompt-text" id="aiPromptText"></div>
+    <button class="copy-prompt-btn" onclick="copyPrompt()">📋 复制提示词 → 去问 Claude</button>
+  </div>
+  <div class="divider"></div>
+  <div class="sec-title">三大场景预判</div>
+  <div class="sc-list" id="scenarios"></div>
+  <div class="divider"></div>
+  <div class="grid2">
+    <div><div class="sec-title">昨日 VP 示意</div><div class="vp-vis" id="vpVis"></div></div>
+    <div><div class="sec-title">昨日 MP 示意</div><div class="mp-vis" id="mpVis"></div></div>
+  </div>
+  <button class="share-btn" onclick="openShare()">📤 分享完整分析报告</button>
+  <div class="footer">⚠️ 仅供辅助参考，不构成交易建议。</div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal" id="shareModal" onclick="if(event.target===this)closeShare()">
+  <div class="modal-box">
+    <h3>📊 分析报告</h3>
+    <div class="share-text" id="shareText"></div>
+    <button class="copy-btn" onclick="copyReport()">📋 复制报告</button>
+    <button class="close-modal" onclick="closeShare()">关闭</button>
+  </div>
+</div>
+
+<script>
+const INST={
+  GOLD:{name:'Gold (XAUUSD)',hint:'IB 窄<10pt｜正常10–25pt｜宽>25pt',narrow:10,wide:25,dec:2,thinRatio:1.8},
+  BTC: {name:'Bitcoin (BTC)',hint:'IB 窄<500｜正常500–2000｜宽>2000',narrow:500,wide:2000,dec:0,thinRatio:2.5},
+  ETH: {name:'Ethereum (ETH)',hint:'IB 窄<20｜正常20–80｜宽>80',narrow:20,wide:80,dec:2,thinRatio:2.2},
+  DJ30:{name:'Dow Jones (DJ30)',hint:'IB 窄<100｜正常100–300｜宽>300',narrow:100,wide:300,dec:0,thinRatio:2.0},
+  SP500:{name:'S&P 500',hint:'IB 窄<15｜正常15–40｜宽>40',narrow:15,wide:40,dec:2,thinRatio:2.0},
+};
+let currentInst='GOLD', lastAnalysis=null, reportText='', aiPromptStr='';
+const spStore=[], wspStore=[];
+
+document.querySelectorAll('#instRow .inst-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#instRow .inst-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); currentInst=b.dataset.inst;
+  document.getElementById('instHint').textContent=INST[currentInst].name+' — '+INST[currentInst].hint;
+  calcIB('ibh','ibl','ibBadge'); calcIB('w_ibh','w_ibl','wibBadge'); calcTodayIB();
+}));
+
+// Shape buttons - supports multiple groups
+function initShapeGroup(id){
+  document.querySelectorAll('#'+id+' .sbtn').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#'+id+' .sbtn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+  }));
+}
+initShapeGroup('vpShape'); initShapeGroup('wvpShape');
+function getShape(id){return document.querySelector('#'+id+' .sbtn.active')?.dataset.val||'D';}
+function setShape(id,v){document.querySelectorAll('#'+id+' .sbtn').forEach(b=>b.classList.toggle('active',b.dataset.val===v));}
+function gv(id){return parseFloat(document.getElementById(id).value);}
+
+function onVPInput(){
+  const vah=gv('vah'),val=gv('val'),poc=gv('poc'),ycls=gv('yclose');
+  if([vah,val,poc].some(isNaN)||vah<=val)return;
+  if(!isNaN(ycls)){
+    let pos;
+    if(ycls>vah)pos='above_vah';
+    else if(ycls>(poc+vah)/2)pos='in_va_top';
+    else if(Math.abs(ycls-poc)<(vah-val)*0.12)pos='at_poc';
+    else if(ycls>val)pos='in_va_bot';
+    else pos='below_val';
+    document.getElementById('closePos').value=pos;
+    const labels={above_vah:'VP VAH上方（强势）',in_va_top:'VA内上半段',at_poc:'接近VP POC',in_va_bot:'VA内下半段',below_val:'VP VAL下方（弱势）'};
+    const h=document.getElementById('closeHint');
+    h.textContent='✅ 自动选择：'+labels[pos]; h.style.display='block';
+  }
+}
+
+function autoDetect(){
+  const vah=gv('vah'),val=gv('val'),poc=gv('poc'),yh=gv('yhigh'),yl=gv('ylow');
+  const el=document.getElementById('autoRes');
+  if([vah,val,poc].some(isNaN)||vah<=val){el.className='auto-res show';el.textContent='⚠️ 请先填写 VP VAH、VAL、POC';return;}
+  const vaR=vah-val,pocR=(poc-val)/vaR,cfg=INST[currentInst];
+  let shape,reason;
+  const hasRange=!isNaN(yh)&&!isNaN(yl);
+  const rangeRatio=hasRange?(yh-yl)/vaR:null;
+  const extremeRange=hasRange&&rangeRatio>cfg.thinRatio;
+
+  // POC position is checked FIRST and takes priority — it's the more reliable signal
+  if(pocR>=0.62){
+    shape='P';reason=`POC在${(pocR*100).toFixed(0)}%上部 → P形（看涨结构）`;
+    if(extremeRange)reason+=`　[注：K线范围较大(${rangeRatio.toFixed(1)}倍VA)，但POC位置明确，以POC为准]`;
+  } else if(pocR<=0.38){
+    shape='b';reason=`POC在${(pocR*100).toFixed(0)}%下部 → b形（看跌结构）`;
+    if(extremeRange)reason+=`　[注：K线范围较大(${rangeRatio.toFixed(1)}倍VA)，但POC位置明确，以POC为准]`;
+  } else if(extremeRange){
+    // Only fall back to Thin when POC is genuinely neutral AND range is extreme
+    shape='Thin';reason=`POC位置中性(${(pocR*100).toFixed(0)}%)且K线范围远大于VA(${rangeRatio.toFixed(1)}倍) → 趋势日无明显POC`;
+  } else {
+    shape='D';reason=`POC在${(pocR*100).toFixed(0)}%中部 → D形（均衡）`;
+  }
+  setShape('vpShape',shape); onVPInput();
+  el.className='auto-res show';
+  el.textContent=`✅ ${shape}形 — ${reason}${shape==='D'?' | 双分布请手动选B形':''}　|　⚠️自动识别仅供参考，请对照图表肉眼确认`;
+}
+
+function calcIB(hId,lId,badgeId){
+  const h=gv(hId),l=gv(lId),el=document.getElementById(badgeId);
+  if(isNaN(h)||isNaN(l)||h<=l){el.style.display='none';return;}
+  const r=h-l,cfg=INST[currentInst];
+  let cls,txt;
+  if(r<cfg.narrow){cls='narrow';txt=`IB宽${r.toFixed(cfg.dec)} → 窄型⚡等爆发`;}
+  else if(r>cfg.wide){cls='wide';txt=`IB宽${r.toFixed(cfg.dec)} → 宽型〰️震荡为主`;}
+  else{cls='normal';txt=`IB宽${r.toFixed(cfg.dec)} → 正常型`;}
+  el.className='ib-badge '+cls; el.textContent=txt; el.style.display='block';
+}
+
+function calcTodayIB(){
+  const th=gv('tibh'),tl=gv('tibl'),vah=gv('vah'),val=gv('val'),poc=gv('poc'),ibh=gv('ibh'),ibl=gv('ibl');
+  const el=document.getElementById('todayIBRes');
+  if(isNaN(th)||isNaN(tl)||th<=tl){el.style.display='none';return;}
+  const cfg=INST[currentInst],r=th-tl,lines=[];
+  const fmt=v=>v.toFixed(cfg.dec);
+
+  if(r<cfg.narrow){
+    lines.push(`⚡ <b>今日IB窄</b>（${fmt(r)} < ${cfg.narrow}）→ 能量被压缩，尚未分出胜负`);
+    lines.push(`📋 操作建议：<b>等突破策略</b> — 不要在IB范围内猜方向；等价格突破IB High或跌破IB Low后顺势跟进；窄IB后续行情往往有延续性，第二次突破更可靠`);
+  } else if(r>cfg.wide){
+    lines.push(`〰️ <b>今日IB宽</b>（${fmt(r)} > ${cfg.wide}）→ 能量已提前释放，开盘已现大幅波动`);
+    lines.push(`📋 操作建议：<b>区间策略</b> — 今天不易出现新的单边趋势；在IB High附近找做空机会，IB Low附近找做多机会；避免追高杀低，等回归IB中值`);
+  } else {
+    lines.push(`今日IB宽度 ${fmt(r)}，正常范围（${cfg.narrow}–${cfg.wide}）`);
+    lines.push(`📋 操作建议：方向未明确偏向，结合VP/MP关键价位和价格行为再决定，不必急于今天的窄宽结论`);
+  }
+
+  if(!isNaN(vah)&&th>vah)lines.push(`✅ 今日IB High突破VP VAH(${fmt(vah)}) → 多头信号`);
+  if(!isNaN(val)&&tl<val)lines.push(`🔴 今日IB Low跌破VP VAL(${fmt(val)}) → 空头信号`);
+  if(!isNaN(ibh)&&th>ibh)lines.push(`📈 突破昨日IB High(${fmt(ibh)}) → 多头延伸`);
+  if(!isNaN(ibl)&&tl<ibl)lines.push(`📉 跌破昨日IB Low(${fmt(ibl)}) → 空头延伸`);
+  if(!isNaN(poc)&&th>poc&&tl<poc)lines.push(`⚖️ 今日IB包含VP POC(${fmt(poc)}) → POC在IB内，今天围绕POC博弈概率高`);
+
+  el.innerHTML=lines.map(l=>`<div style="margin-bottom:4px">• ${l}</div>`).join('');
+  el.className='today-ib-res show';
+}
+
+// SP management - supports multiple lists
+function addSP(listId, btnId, store){
+  if(store.length>=3)return;
+  const idx=store.length+1;
+  const sid=listId+'_sp'+idx;
+  store.push(sid);
+  const div=document.createElement('div');
+  div.id=sid+'_row';
+  div.style.cssText='background:rgba(232,121,249,.05);border:1px solid rgba(232,121,249,.2);border-radius:8px;padding:10px;margin-bottom:8px;';
+  div.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+    <span style="font-size:11px;font-weight:700;color:var(--sp)">SP区间 ${idx}</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <select id="${sid}dir" style="font-size:11px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--muted)">
+        <option value="above">↑上方阻力</option><option value="below">↓下方支撑</option>
+      </select>
+      <button class="sp-del" onclick="removeSP('${sid}_row','${btnId}',${listId==='spList'?'spStore':'wspStore'})">✕</button>
+    </div></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div><label style="font-size:10px;color:var(--label);margin-bottom:3px;display:block">区间高点</label>
+        <input type="number" id="${sid}h" placeholder="例：2338.00" step="0.01" style="width:100%"></div>
+      <div><label style="font-size:10px;color:var(--label);margin-bottom:3px;display:block">区间低点</label>
+        <input type="number" id="${sid}l" placeholder="例：2334.00" step="0.01" style="width:100%"></div>
+    </div>`;
+  document.getElementById(listId).appendChild(div);
+  if(store.length>=3)document.getElementById(btnId).style.display='none';
+}
+function removeSP(rowId,btnId,store){
+  const el=document.getElementById(rowId);if(el)el.remove();
+  if(store.length>0)store.pop();
+  document.getElementById(btnId).style.display='block';
+}
+function getSPs(store){
+  const sps=[];
+  store.forEach(sid=>{
+    const h=document.getElementById(sid+'h'),l=document.getElementById(sid+'l'),d=document.getElementById(sid+'dir');
+    if(h&&l&&d&&h.value&&l.value){const hi=parseFloat(h.value),lo=parseFloat(l.value);if(!isNaN(hi)&&!isNaN(lo)&&hi>=lo)sps.push({hi,lo,mid:(hi+lo)/2,dir:d.value});}
+  });
+  return sps;
+}
+
+// ===== MAIN ANALYZE =====
+function analyze(){
+  const vah=gv('vah'),val=gv('val'),poc=gv('poc');
+  const mpvah=gv('mpvah'),mpval=gv('mpval'),mpoc=gv('mpoc');
+  const ibh=gv('ibh'),ibl=gv('ibl');
+  const w_vah=gv('w_vah'),w_val=gv('w_val'),w_poc=gv('w_poc');
+  const w_mpvah=gv('w_mpvah'),w_mpval=gv('w_mpval'),w_mpoc=gv('w_mpoc');
+  const w_ibh=gv('w_ibh'),w_ibl=gv('w_ibl');
+  const open=gv('open'),tibh=gv('tibh'),tibl=gv('tibl');
+  const closePos=document.getElementById('closePos').value;
+  const shape=getShape('vpShape'),wshape=getShape('wvpShape');
+  const sps=getSPs(spStore),wsps=getSPs(wspStore);
+  const cfg=INST[currentInst];
+  const fmt=v=>v.toFixed(cfg.dec);
+
+  if([vah,val,poc,open].some(isNaN)){alert('请至少填写 VP VAH、VAL、POC 和今日开盘价');return;}
+
+  let bull=0,bear=0;
+  const reasons=[],tags=[];
+
+  // 1. Yesterday VP shape
+  if(shape==='P'){bull+=30;reasons.push('昨日VP P形看涨');tags.push({t:'P形↑',c:'bull'});}
+  else if(shape==='b'){bear+=30;reasons.push('昨日VP b形看跌');tags.push({t:'b形↓',c:'bear'});}
+  else if(shape==='D'){reasons.push('昨日VP D形均衡');tags.push({t:'D形均衡',c:'neutral'});}
+  else if(shape==='B'){reasons.push('昨日VP B形双分布');tags.push({t:'B形双POC',c:'gold'});}
+  else if(shape==='Thin'){
+    if(closePos==='above_vah'||closePos==='in_va_top'){bull+=35;reasons.push('Thin+强势→趋势延续↑');tags.push({t:'Thin趋势↑',c:'bull'});}
+    else if(closePos==='below_val'||closePos==='in_va_bot'){bear+=35;reasons.push('Thin+弱势→趋势延续↓');tags.push({t:'Thin趋势↓',c:'bear'});}
+    else{reasons.push('Thin收盘中性，等突破');tags.push({t:'Thin等方向',c:'gold'});}
+  }
+
+  // 2. Close position
+  if(closePos==='above_vah'){bull+=25;reasons.push('昨收VP VAH上方');}
+  else if(closePos==='in_va_top')bull+=10;
+  else if(closePos==='in_va_bot')bear+=10;
+  else if(closePos==='below_val'){bear+=25;reasons.push('昨收VP VAL下方');}
+
+  // 3. Open vs yesterday VP
+  const vaR=vah-val;
+  if(open>vah){bull+=20;reasons.push('开盘昨日VP VAH上方');tags.push({t:'开盘↑昨VAH',c:'bull'});}
+  else if(open<val){bear+=20;reasons.push('开盘昨日VP VAL下方');tags.push({t:'开盘↓昨VAL',c:'bear'});}
+  else if(open>poc)bull+=5; else bear+=5;
+
+  // 4. VP vs MP confluence (yesterday)
+  if(!isNaN(mpoc)){
+    const d=Math.abs(poc-mpoc);
+    if(vaR>0&&d/vaR<0.15){bull+=10;bear+=10;reasons.push('昨日VP/MP POC重合，极强磁力');tags.push({t:'昨双POC重合',c:'gold'});}
+    else reasons.push(`昨日VP POC(${fmt(poc)}) vs MP POC(${fmt(mpoc)}) 分离${d.toFixed(cfg.dec)}pt`);
+  }
+  if(!isNaN(mpvah)&&!isNaN(mpval)){
+    if(open>mpvah){bull+=8;reasons.push('开盘昨日MP VAH上方');}
+    else if(open<mpval){bear+=8;reasons.push('开盘昨日MP VAL下方');}
+  }
+
+  // 5. Yesterday IB
+  if(!isNaN(ibh)&&!isNaN(ibl)&&ibh>ibl){
+    const ibR=ibh-ibl;
+    if(ibR<cfg.narrow){reasons.push('昨IB窄→能量积累');tags.push({t:'昨IB窄⚡',c:'gold'});}
+    else if(ibR>cfg.wide){reasons.push('昨IB宽→能量释放');tags.push({t:'昨IB宽',c:'neutral'});}
+  }
+
+  // 6. Weekly VP analysis
+  let w_bias='neutral';
+  if(!isNaN(w_poc)){
+    if(open>w_poc){w_bias='bull';bull+=18;reasons.push('开盘在周线VP POC上方，周线偏多');tags.push({t:'开盘↑周POC',c:'week'});}
+    else if(open<w_poc){w_bias='bear';bear+=18;reasons.push('开盘在周线VP POC下方，周线偏空');tags.push({t:'开盘↓周POC',c:'week'});}
+  }
+  if(!isNaN(w_vah)&&open>w_vah){bull+=12;w_bias='bull';reasons.push('开盘突破周线VP VAH，极强多头');}
+  if(!isNaN(w_val)&&open<w_val){bear+=12;w_bias='bear';reasons.push('开盘跌破周线VP VAL，极强空头');}
+  if(wshape==='P'){bull+=12;reasons.push('周线VP P形，大级别看涨结构');tags.push({t:'周VP P形↑',c:'week'});}
+  else if(wshape==='b'){bear+=12;reasons.push('周线VP b形，大级别看跌结构');tags.push({t:'周VP b形↓',c:'week'});}
+  else if(wshape==='Thin'){
+    if(w_bias==='bull'){bull+=10;reasons.push('周线VP Thin+偏多，趋势强劲');}
+    else if(w_bias==='bear'){bear+=10;reasons.push('周线VP Thin+偏空，趋势强劲');}
+  }
+
+  // 7. Weekly MP
+  if(!isNaN(w_mpoc)){
+    const wd=Math.abs(w_poc-w_mpoc);
+    if(!isNaN(w_poc)&&!isNaN(w_vah)&&wd/(w_vah-w_val||1)<0.15){
+      bull+=8;bear+=8;reasons.push('周线VP/MP POC重合，极强周线磁力');tags.push({t:'周双POC重合',c:'week'});
+    }
+    if(open>w_mpoc){bull+=6;reasons.push('开盘在周线MP POC上方');}
+    else if(open<w_mpoc){bear+=6;reasons.push('开盘在周线MP POC下方');}
+  }
+  if(!isNaN(w_mpvah)&&!isNaN(w_mpval)){
+    if(open>w_mpvah){bull+=8;reasons.push('开盘突破周线MP VAH，周线多头确认');}
+    else if(open<w_mpval){bear+=8;reasons.push('开盘跌破周线MP VAL，周线空头确认');}
+  }
+
+  // 8. Today IB
+  if(!isNaN(tibh)&&!isNaN(tibl)&&tibh>tibl){
+    if(tibh>vah){bull+=15;reasons.push('今日IB突破昨VP VAH');tags.push({t:'今IB突VAH',c:'today'});}
+    if(tibl<val){bear+=15;reasons.push('今日IB跌破昨VP VAL');tags.push({t:'今IB破VAL',c:'today'});}
+  }
+
+  // 9. Yesterday SP
+  const nearT=vaR*0.15;
+  sps.forEach(sp=>{
+    const inSP=open>=sp.lo&&open<=sp.hi,near=!inSP&&Math.abs(sp.mid-open)<nearT;
+    if(inSP){reasons.push(`开盘在昨日SP真空(${fmt(sp.lo)}–${fmt(sp.hi)})内`);tags.push({t:'开盘在SP内',c:'neutral'});}
+    else if(near){reasons.push(`昨日SP(${fmt(sp.lo)}–${fmt(sp.hi)})极近`);tags.push({t:'SP极近',c:'neutral'});}
+    if(sp.dir==='below'&&sp.hi<open)bull+=8;
+    else if(sp.dir==='above'&&sp.lo>open)bear+=8;
+  });
+  // Weekly SP
+  wsps.forEach(sp=>{
+    if(open>=sp.lo&&open<=sp.hi){reasons.push(`开盘在周线SP真空(${fmt(sp.lo)}–${fmt(sp.hi)})内`);tags.push({t:'周SP真空',c:'week'});}
+    if(sp.dir==='below'&&sp.hi<open)bull+=6;
+    else if(sp.dir==='above'&&sp.lo>open)bear+=6;
+  });
+
+  // Bias
+  const total=bull+bear;
+  let bias,conf;
+  if(total===0){bias='neutral';conf=50;}
+  else if(bull>bear*1.3){bias='bull';conf=Math.min(92,50+Math.round((bull-bear)/total*60));}
+  else if(bear>bull*1.3){bias='bear';conf=Math.min(92,50+Math.round((bear-bull)/total*60));}
+  else{bias='neutral';conf=50;}
+
+  // Weekly alignment
+  const intraDay=bias;
+  const wAlign=(w_bias===intraDay)||(w_bias==='neutral');
+  if(!wAlign){conf=Math.max(30,conf-15);}
+  else if(w_bias!=='neutral'&&wAlign){conf=Math.min(92,conf+8);}
+
+  // MTF bar
+  document.getElementById('mtfBar').innerHTML=[
+    {label:'周线',bias:w_bias,sub:w_bias==='bull'?'看涨':w_bias==='bear'?'看跌':'横盘'},
+    {label:'今日综合',bias:intraDay,sub:intraDay==='bull'?'偏多':intraDay==='bear'?'偏空':'中性'},
+  ].map(m=>`<div class="mtf-card ${m.bias}">
+    <div class="mn">${m.label}</div>
+    <div class="mv">${m.bias==='bull'?'📈 看涨':m.bias==='bear'?'📉 看跌':'⚖️ 横盘'}</div>
+    <div class="ms">${m.sub}</div></div>`).join('');
+
+  // Bias bar
+  document.getElementById('biasBar').className='bias-bar '+bias;
+  document.getElementById('biasIcon').textContent=bias==='bull'?'📈':bias==='bear'?'📉':'⚖️';
+  const bt=document.getElementById('biasTitle');
+  bt.textContent=bias==='bull'?'综合偏多 — 今日看涨':bias==='bear'?'综合偏空 — 今日看跌':'综合中性 — 区间震荡';
+  bt.className='bias-title '+bias;
+  document.getElementById('biasSub').textContent=reasons.join('；');
+  document.getElementById('confPct').textContent=conf+'%';
+  document.getElementById('tagRow').innerHTML=tags.map(t=>`<span class="tag ${t.c}">${t.t}</span>`).join('');
+
+  // Trend warning
+  const tw=document.getElementById('trendWarn');
+  if(!wAlign&&bias!=='neutral'){
+    tw.innerHTML=`<div class="warn-box conflict">⚠️ 周线与今日偏向冲突：今日偏${bias==='bull'?'多':'空'}，但周线方向相反。置信度已降低，建议缩小仓位。</div>`;
+    tw.style.display='block';
+  } else if(w_bias!=='neutral'&&wAlign){
+    tw.innerHTML=`<div class="warn-box align">✅ 周线与今日偏向一致：${bias==='bull'?'周线+今日双重看涨，顺势做多':'周线+今日双重看跌，顺势做空'}。置信度提升。</div>`;
+    tw.style.display='block';
+  } else tw.style.display='none';
+
+  // Today alert
+  const ta=document.getElementById('todayAlert');
+  if(!isNaN(tibh)&&!isNaN(tibl)&&tibh>tibl){
+    const al=[];
+    if(tibh>vah)al.push(`✅ 今日IB High <b>${fmt(tibh)}</b> 突破昨VP VAH(${fmt(vah)}) → 等回踩做多`);
+    if(tibl<val)al.push(`🔴 今日IB Low <b>${fmt(tibl)}</b> 跌破昨VP VAL(${fmt(val)}) → 等反弹做空`);
+    if(!isNaN(w_vah)&&tibh>w_vah)al.push(`🔥 今日IB High突破周线VP VAH(${fmt(w_vah)}) → 极强多头信号`);
+    if(!isNaN(w_val)&&tibl<w_val)al.push(`🔥 今日IB Low跌破周线VP VAL(${fmt(w_val)}) → 极强空头信号`);
+    if(!isNaN(ibh)&&tibh>ibh)al.push(`📈 突破昨日IB High(${fmt(ibh)}) → 多头延伸`);
+    if(!isNaN(ibl)&&tibl<ibl)al.push(`📉 跌破昨日IB Low(${fmt(ibl)}) → 空头延伸`);
+    if(al.length>0){
+      ta.innerHTML=`<div class="today-alert"><div class="today-alert-t">🔵 今日IB实时信号</div><div class="today-alert-b">${al.join('<br>')}</div></div>`;
+      ta.style.display='block';
+    } else ta.style.display='none';
+  } else ta.style.display='none';
+
+  // Key levels
+  const levels=[];
+  levels.push({n:'昨VP VAH',v:vah,r:'昨日VP阻力',c:'res'});
+  levels.push({n:'昨VP POC',v:poc,r:'VP磁力核心',c:'poc'});
+  levels.push({n:'昨VP VAL',v:val,r:'昨日VP支撑',c:'sup'});
+  if(!isNaN(mpvah))levels.push({n:'昨MP VAH',v:mpvah,r:'昨日MP阻力',c:'res'});
+  if(!isNaN(mpoc))levels.push({n:'昨MP POC',v:mpoc,r:'MP磁力核心',c:'poc'});
+  if(!isNaN(mpval))levels.push({n:'昨MP VAL',v:mpval,r:'昨日MP支撑',c:'sup'});
+  if(!isNaN(ibh))levels.push({n:'昨IB High',v:ibh,r:'突破确认位',c:'res'});
+  if(!isNaN(ibl))levels.push({n:'昨IB Low',v:ibl,r:'跌破确认位',c:'sup'});
+  if(!isNaN(w_vah))levels.push({n:'周VP VAH',v:w_vah,r:'周线VP阻力',c:'wk'});
+  if(!isNaN(w_poc))levels.push({n:'周VP POC',v:w_poc,r:'周线磁力',c:'wk'});
+  if(!isNaN(w_val))levels.push({n:'周VP VAL',v:w_val,r:'周线VP支撑',c:'wk'});
+  if(!isNaN(w_mpvah))levels.push({n:'周MP VAH',v:w_mpvah,r:'周线MP阻力',c:'wk'});
+  if(!isNaN(w_mpoc))levels.push({n:'周MP POC',v:w_mpoc,r:'周线MP磁力',c:'wk'});
+  if(!isNaN(w_mpval))levels.push({n:'周MP VAL',v:w_mpval,r:'周线MP支撑',c:'wk'});
+  if(!isNaN(tibh))levels.push({n:'今IB High',v:tibh,r:'今日突破位',c:'tdy'});
+  if(!isNaN(tibl))levels.push({n:'今IB Low',v:tibl,r:'今日跌破位',c:'tdy'});
+  sps.forEach((sp,i)=>levels.push({n:`昨SP${i+1}`,v:sp.hi,r:`${fmt(sp.lo)}–${fmt(sp.hi)}`,c:'spc'}));
+  wsps.forEach((sp,i)=>levels.push({n:`周SP${i+1}`,v:sp.hi,r:`${fmt(sp.lo)}–${fmt(sp.hi)}`,c:'wk'}));
+  document.getElementById('levelsRow').innerHTML=levels.map(l=>`
+    <div class="lcard ${l.c}"><div class="ln">${l.n}</div><div class="lv">${l.v.toFixed(cfg.dec)}</div><div class="lr">${l.r}</div></div>`).join('');
+
+  // SP panels
+  const allSPs=[...sps.map(s=>({...s,label:'昨日'})),...wsps.map(s=>({...s,label:'周线'}))];
+  const spEl=document.getElementById('spPanel');
+  if(allSPs.length>0){
+    const sorted=[...allSPs].sort((a,b)=>Math.abs(a.mid-open)-Math.abs(b.mid-open));
+    let html=`<div class="sp-panel"><div class="sp-panel-title">⚡ Single Print 价格真空区分析</div>`;
+    sorted.forEach((sp,i)=>{
+      const inSP=open>=sp.lo&&open<=sp.hi,near=!inSP&&Math.abs(sp.mid-open)<nearT;
+      const badge=inSP?'<span class="sp-badge near">⚠️在内</span>':near?'<span class="sp-badge near">极近</span>':sp.dir==='above'?'<span class="sp-badge above">↑阻力</span>':'<span class="sp-badge below">↓支撑</span>';
+      html+=`<div class="sp-item">${badge}<span>[${sp.label}] <b>${fmt(sp.lo)}–${fmt(sp.hi)}</b>(${(sp.hi-sp.lo).toFixed(cfg.dec)}pt) — ${i===0?'⭐优先':i===1?'次要':'备用'}${inSP?' 等突破再建仓':near?' 不建仓':''}</span></div>`;
+    });
+    html+=`<div style="font-size:10px;color:var(--muted);margin-top:6px">价格快速穿越，不建仓，可作目标位</div></div>`;
+    spEl.innerHTML=html; spEl.style.display='block';
+  } else spEl.style.display='none';
+
+  // Auto trade setup
+  const trEl=document.getElementById('tradeResult');
+  if(bias!=='neutral'){
+    const isBuy=bias==='bull';
+    let entry,sl,tp1,tp2,entryR,slR,tp1R,tp2R;
+    if(isBuy){
+      entry=open>vah?vah:poc; entryR=open>vah?'回踩昨VP VAH入多':'昨VP POC支撑入多';
+      sl=open>vah?poc-(vaR*0.05):val-(vaR*0.05); slR=open>vah?'VP POC下方':'VP VAL下方';
+      tp1=!isNaN(ibh)?ibh:vah+vaR; tp1R='昨IB High/VA延伸';
+      tp2=!isNaN(w_vah)&&w_vah>tp1?w_vah:tp1+vaR*0.8; tp2R=!isNaN(w_vah)&&w_vah>tp1?'周线VP VAH':'延伸目标';
+    } else {
+      entry=open<val?val:poc; entryR=open<val?'反弹昨VP VAL入空':'昨VP POC阻力入空';
+      sl=open<val?poc+(vaR*0.05):vah+(vaR*0.05); slR=open<val?'VP POC上方':'VP VAH上方';
+      tp1=!isNaN(ibl)?ibl:val-vaR; tp1R='昨IB Low/VA延伸';
+      tp2=!isNaN(w_val)&&w_val<tp1?w_val:tp1-vaR*0.8; tp2R=!isNaN(w_val)&&w_val<tp1?'周线VP VAL':'延伸目标';
+    }
+    const risk=Math.abs(entry-sl),r1=Math.abs(tp1-entry),r2=Math.abs(tp2-entry);
+    const rr1=(r1/risk).toFixed(2),rr2=(r2/risk).toFixed(2),rp=risk/(risk+r1)*100;
+    trEl.innerHTML=`<div class="trade-result"><div class="trade-title">📐 自动推算入场方案（${isBuy?'做多 📈':'做空 📉'}）</div>
+      <div class="trade-grid">
+        <div class="tcard entry"><div class="tn">建议入场</div><div class="tv">${fmt(entry)}</div><div class="ts">${entryR}</div></div>
+        <div class="tcard sl"><div class="tn">止损 SL</div><div class="tv">${fmt(sl)}</div><div class="ts">${slR} | 风险${fmt(risk)}pt</div></div>
+        <div class="tcard tp"><div class="tn">止盈 TP1</div><div class="tv">${fmt(tp1)}</div><div class="ts">${tp1R} | R:R 1:${rr1}</div></div>
+        <div class="tcard tp"><div class="tn">止盈 TP2</div><div class="tv">${fmt(tp2)}</div><div class="ts">${tp2R} | R:R 1:${rr2}</div></div>
+      </div>
+      <div class="rr-bar"><div class="rs" style="width:${rp}%"></div><div class="rw" style="width:${100-rp}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:3px"><span>🔴 风险${fmt(risk)}pt</span><span>🟢 TP1:${fmt(r1)}pt(1:${rr1}) | TP2:${fmt(r2)}pt(1:${rr2})</span></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px;padding:6px 8px;background:rgba(240,180,41,.05);border-radius:5px">⚠️ 以上为参考方案，实际入场请等价格行为确认（测试关键位后出现反转K线）再执行。</div></div>`;
+    trEl.style.display='block';
+    lastAnalysis={...lastAnalysis,entry,sl,tp1,tp2,rr1,rr2,risk,r1,r2,isBuy,entryR,slR,tp1R,tp2R,fmt};
+  } else trEl.style.display='none';
+
+  // Scenarios
+  const sc=[];
+  const ibhS=!isNaN(ibh)?`(${fmt(ibh)})`:'';
+  const iblS=!isNaN(ibl)?`(${fmt(ibl)})`:'';
+  const spNote=sps.length>0?` ⚡昨日SP真空 ${sps.map(s=>`${fmt(s.lo)}–${fmt(s.hi)}`).join('/')} 勿建仓。`:'';
+  const wNote=(!isNaN(w_vah)&&!isNaN(w_val))?` 周线VA(${fmt(w_val)}–${fmt(w_vah)})为大级别框架。`:'';
+  const mpNote=(!isNaN(mpvah)&&!isNaN(mpval))?` 昨日MP VA(${fmt(mpval)}–${fmt(mpvah)})次级参考。`:'';
+
+  if(shape==='Thin'){
+    const td=(closePos==='above_vah'||closePos==='in_va_top')?'bull':(closePos==='below_val'||closePos==='in_va_bot')?'bear':'neutral';
+    if(td==='bull'){
+      sc.push({i:'🟢',t:'场景一（主要）：趋势延续做多',d:`Thin形无POC磁力。不破VP VAL(${fmt(val)}) → 做多，目标延伸高点。${wNote}${spNote}`});
+      sc.push({i:'🟡',t:'场景二：回踩VP POC确认',d:`回落至VP POC(${fmt(poc)})出现支撑 → 加仓做多，止损昨低下方。`});
+      sc.push({i:'🔴',t:'场景三（风险）：跌破昨低',d:`跌破昨低无法收回 → 趋势破坏，离场。`});
+    } else if(td==='bear'){
+      sc.push({i:'🔴',t:'场景一（主要）：趋势延续做空',d:`Thin形无POC磁力。不破VP VAH(${fmt(vah)}) → 做空，目标延伸低点。${wNote}${spNote}`});
+      sc.push({i:'🟡',t:'场景二：反弹至VP POC受压',d:`反弹至VP POC(${fmt(poc)})出现阻力 → 加仓做空，止损昨高上方。`});
+      sc.push({i:'🟢',t:'场景三（风险）：突破昨高',d:`突破昨高站稳 → 趋势破坏，离场。`});
+    } else {
+      sc.push({i:'🟡',t:'场景一：等待突破方向',d:`Thin形收盘中性，等突破VP VAH(${fmt(vah)})或跌破VP VAL(${fmt(val)})再跟进。`});
+      sc.push({i:'🟢',t:'场景二：突破VP VAH做多',d:`有效突破VP VAH(${fmt(vah)}) → 做多。${wNote}`});
+      sc.push({i:'🔴',t:'场景三：跌破VP VAL做空',d:`有效跌破VP VAL(${fmt(val)}) → 做空。${wNote}`});
+    }
+  } else if(bias==='bull'){
+    sc.push({i:'🟢',t:'场景一（主要）：多头延续',d:`守VP VAH(${fmt(vah)})上方或回踩不破 → 做多，目标昨IB High${ibhS}。止损VP POC(${fmt(poc)})下方。${mpNote}${wNote}${spNote}`});
+    sc.push({i:'🟡',t:'场景二：回踩VP POC企稳',d:`跌回VA内测试VP POC(${fmt(poc)})出现支撑 → 做多，目标VP VAH(${fmt(vah)})。`});
+    sc.push({i:'🔴',t:'场景三（风险）：失守VP VAL',d:`跌破VP VAL(${fmt(val)})无法收回 → 多头失效，转空思路。${!isNaN(w_val)?`注意周线VP VAL(${fmt(w_val)})。`:''}`});
+  } else if(bias==='bear'){
+    sc.push({i:'🔴',t:'场景一（主要）：空头延续',d:`守VP VAL(${fmt(val)})下方或反弹受阻 → 做空，目标昨IB Low${iblS}。止损VP POC(${fmt(poc)})上方。${mpNote}${wNote}${spNote}`});
+    sc.push({i:'🟡',t:'场景二：反弹至VP POC受压',d:`反弹至VP POC(${fmt(poc)})出现阻力 → 做空，目标VP VAL(${fmt(val)})。`});
+    sc.push({i:'🟢',t:'场景三（风险）：突破VP VAH',d:`突破VP VAH(${fmt(vah)})站稳 → 空头失效，转多。${!isNaN(w_vah)?`注意周线VP VAH(${fmt(w_vah)})。`:''}`});
+  } else {
+    sc.push({i:'🟡',t:'场景一（主要）：VA内震荡',d:`价格在VP VAL(${fmt(val)})和VP VAH(${fmt(vah)})之间，VP POC(${fmt(poc)})为中轴。高卖低买，不追。${wNote}${spNote}`});
+    sc.push({i:'🟢',t:'场景二：突破VP VAH看多',d:`有效突破VP VAH(${fmt(vah)})回踩确认 → 做多，目标昨IB High${ibhS}。${!isNaN(w_vah)?`周线VP VAH(${fmt(w_vah)})为上方大阻力。`:''}`});
+    sc.push({i:'🔴',t:'场景三：跌破VP VAL看空',d:`有效跌破VP VAL(${fmt(val)}) → 做空，目标昨IB Low${iblS}。${!isNaN(w_val)?`周线VP VAL(${fmt(w_val)})为下方大支撑。`:''}`});
+  }
+
+  document.getElementById('scenarios').innerHTML=sc.map(s=>`
+    <div class="sc"><div class="si">${s.i}</div><div><div class="st">${s.t}</div><div class="sd">${s.d}</div></div></div>`).join('');
+
+  // Visuals
+  const vpEl=document.getElementById('vpVis'); vpEl.innerHTML='';
+  genBars(shape).forEach(b=>{const el=document.createElement('div');el.className='vp-bar'+(b.poc?' poc':b.va?' va':'');el.style.height=b.h+'px';vpEl.appendChild(el);});
+  document.getElementById('mpVis').textContent=genMP(shape,!isNaN(mpoc)?mpoc:poc,vah,val,cfg.dec);
+
+  // Store
+  lastAnalysis={inst:INST[currentInst].name,vah,val,poc,mpvah,mpval,mpoc,ibh,ibl,w_vah,w_val,w_poc,w_mpvah,w_mpval,w_mpoc,w_ibh,w_ibl,open,tibh,tibl,shape,wshape,closePos,sps,wsps,bias,conf,w_bias,reasons,sc,fmt,cfg,...lastAnalysis};
+  buildReport();
+  document.getElementById('result').style.display='block';
+  document.getElementById('result').scrollIntoView({behavior:'smooth'});
+  if(currentUserId) saveDailyHistory();
+}
+
+// ===== AI PROMPT GENERATOR =====
+function genAIPrompt(){
+  if(!lastAnalysis){alert('请先点击「逻辑分析」再生成AI提示词');return;}
+  const a=lastAnalysis,fmt=a.fmt;
+  const hasW=!isNaN(a.w_poc)||!isNaN(a.w_vah);
+
+  let p=`你是专业的 Volume Profile 和 Market Profile 交易分析师。请基于以下数据，用中文给出完整的今日走势分析报告：
+
+【品种】${a.inst}
+【系统初步判断】偏向：${a.bias==='bull'?'偏多看涨':a.bias==='bear'?'偏空看跌':'中性震荡'}　置信度：${a.conf}%
+【多框架】周线${a.w_bias==='bull'?'看涨':a.w_bias==='bear'?'看跌':'中性'} | 今日${a.bias==='bull'?'偏多':a.bias==='bear'?'偏空':'中性'}
+
+【昨日 VP 数据】
+VP VAH：${fmt(a.vah)}　VP POC：${fmt(a.poc)}　VP VAL：${fmt(a.val)}
+VP 形态：${a.shape}形
+昨日收盘位置：${a.closePos}`;
+  if(!isNaN(a.mpvah))p+=`\n\n【昨日 MP 数据】\nMP VAH：${fmt(a.mpvah)}　MP POC：${isNaN(a.mpoc)?'—':fmt(a.mpoc)}　MP VAL：${fmt(a.mpval)}`;
+  if(!isNaN(a.ibh)&&!isNaN(a.ibl))p+=`\n昨日 IB：${fmt(a.ibl)} – ${fmt(a.ibh)}`;
+  if(a.sps.length>0)p+=`\n昨日 SP：${a.sps.map(s=>`${fmt(s.lo)}–${fmt(s.hi)}(${s.dir==='above'?'↑阻力':'↓支撑'})`).join('，')}`;
+  if(hasW){
+    p+=`\n\n【周线 VP 数据】\n周线VP VAH：${isNaN(a.w_vah)?'—':fmt(a.w_vah)}　周线VP POC：${isNaN(a.w_poc)?'—':fmt(a.w_poc)}　周线VP VAL：${isNaN(a.w_val)?'—':fmt(a.w_val)}`;
+    p+=`\n周线VP形态：${a.wshape}形`;
+    if(!isNaN(a.w_mpvah))p+=`\n周线MP VAH：${fmt(a.w_mpvah)}　周线MP POC：${isNaN(a.w_mpoc)?'—':fmt(a.w_mpoc)}　周线MP VAL：${fmt(a.w_mpval)}`;
+    if(!isNaN(a.w_ibh)&&!isNaN(a.w_ibl))p+=`\n周线 IB：${fmt(a.w_ibl)} – ${fmt(a.w_ibh)}`;
+    if(a.wsps.length>0)p+=`\n周线 SP：${a.wsps.map(s=>`${fmt(s.lo)}–${fmt(s.hi)}(${s.dir==='above'?'↑阻力':'↓支撑'})`).join('，')}`;
+  }
+  p+=`\n\n【今日数据】\n今日开盘：${fmt(a.open)}`;
+  if(!isNaN(a.tibh)&&!isNaN(a.tibl))p+=`\n今日 IB：${fmt(a.tibl)} – ${fmt(a.tibh)}`;
+  if(a.entry)p+=`\n\n【逻辑系统推算的入场方案】\n方向：${a.isBuy?'做多':'做空'}\n入场：${fmt(a.entry)}（${a.entryR}）\n止损：${fmt(a.sl)}（风险${fmt(a.risk)}pt）\n TP1：${fmt(a.tp1)}（${a.tp1R}，R:R 1:${a.rr1}）\nTP2：${fmt(a.tp2)}（${a.tp2R}，R:R 1:${a.rr2}）`;
+  p+=`\n\n请提供：
+1. 市场结构分析（基于VP/MP数据）
+2. 周线与今日框架的协同/冲突分析
+3. 关键价位重要性排序
+4. 今日交易策略（入场条件、止损、止盈、R:R）
+5. 主要风险提示
+
+请直接给出结论，不要解释基础概念。`;
+
+  aiPromptStr=p;
+  document.getElementById('aiPromptText').textContent=p;
+  document.getElementById('aiBox').style.display='block';
+  document.getElementById('aiBox').scrollIntoView({behavior:'smooth'});
+}
+
+function copyPrompt(){
+  navigator.clipboard.writeText(aiPromptStr).then(()=>{
+    const b=document.querySelector('.copy-prompt-btn');b.textContent='✅ 已复制！去 claude.ai 粘贴问 Claude';
+    setTimeout(()=>b.textContent='📋 复制提示词 → 去问 Claude',3000);
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=aiPromptStr;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    const b=document.querySelector('.copy-prompt-btn');b.textContent='✅ 已复制！';setTimeout(()=>b.textContent='📋 复制提示词 → 去问 Claude',3000);
+  });
+}
+
+function genBars(shape){
+  const n=18,bars=[];
+  for(let i=0;i<n;i++){
+    const t=i/(n-1);let h;
+    if(shape==='D')h=20+80*Math.exp(-Math.pow((t-.5)*4,2));
+    else if(shape==='P')h=15+85*Math.pow(t,1.6);
+    else if(shape==='b')h=15+85*Math.pow(1-t,1.6);
+    else if(shape==='B')h=10+Math.max(80*Math.exp(-Math.pow((t-.78)*6,2)),80*Math.exp(-Math.pow((t-.22)*6,2)));
+    else h=24+Math.sin(i*1.1)*7+Math.random()*5;
+    bars.push({h:Math.round(h),poc:i===Math.round((n-1)*(shape==='P'?.88:shape==='b'?.12:.5)),va:t>=.2&&t<=.8});
+  }
+  return bars;
+}
+function genMP(shape,mpocVal,vah,val,dec){
+  const rows=['价格        TPO','──────────────────────'];
+  for(let i=12;i>=0;i--){
+    const t=i/12,price=(val+(vah-val)*t).toFixed(dec);
+    let tp;
+    if(shape==='D')tp=Math.round(2+10*Math.exp(-Math.pow((t-.5)*4,2)));
+    else if(shape==='P')tp=Math.round(1+11*Math.pow(t,1.5));
+    else if(shape==='b')tp=Math.round(1+11*Math.pow(1-t,1.5));
+    else if(shape==='Thin')tp=Math.round(2+Math.random()*5);
+    else tp=Math.round(1+9*Math.max(Math.exp(-Math.pow((t-.78)*6,2)),Math.exp(-Math.pow((t-.22)*6,2))));
+    const poc=Math.abs(parseFloat(price)-mpocVal)<(vah-val)/12;
+    rows.push(`${String(price).padStart(9)}  ${'ABCDEFGHIJKLM'.slice(0,Math.max(1,tp))}${poc?' ← POC':''}`);
+  }
+  rows.push('──────────────────────');
+  return rows.join('\n');
+}
+
+function buildReport(){
+  const a=lastAnalysis;if(!a)return;
+  const fmt=a.fmt;
+  const now=new Date();
+  let r=`📊 VP+MP 多框架分析报告\n${a.inst}　${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}\n${'═'.repeat(30)}\n`;
+  r+=`【综合偏向】${a.bias==='bull'?'偏多📈':a.bias==='bear'?'偏空📉':'中性⚖️'}　置信度：${a.conf}%\n`;
+  r+=`【多框架】周线${a.w_bias==='bull'?'↑':a.w_bias==='bear'?'↓':'→'} | 今日${a.bias==='bull'?'↑':a.bias==='bear'?'↓':'→'}\n`;
+  r+=`【VP形态】昨${a.shape}形 | 周${a.wshape}形\n${'─'.repeat(30)}\n`;
+  r+=`【昨日VP】VAH:${fmt(a.vah)} POC:${fmt(a.poc)} VAL:${fmt(a.val)}\n`;
+  if(!isNaN(a.mpvah))r+=`【昨日MP】VAH:${fmt(a.mpvah)} POC:${isNaN(a.mpoc)?'—':fmt(a.mpoc)} VAL:${fmt(a.mpval)}\n`;
+  if(!isNaN(a.ibh)&&!isNaN(a.ibl))r+=`【昨日IB】${fmt(a.ibl)}–${fmt(a.ibh)}\n`;
+  if(!isNaN(a.w_poc)||!isNaN(a.w_vah))r+=`【周线VP】VAH:${isNaN(a.w_vah)?'—':fmt(a.w_vah)} POC:${isNaN(a.w_poc)?'—':fmt(a.w_poc)} VAL:${isNaN(a.w_val)?'—':fmt(a.w_val)}\n`;
+  if(!isNaN(a.w_mpvah))r+=`【周线MP】VAH:${fmt(a.w_mpvah)} POC:${isNaN(a.w_mpoc)?'—':fmt(a.w_mpoc)} VAL:${fmt(a.w_mpval)}\n`;
+  r+=`【今日开盘】${fmt(a.open)}\n`;
+  if(!isNaN(a.tibh)&&!isNaN(a.tibl))r+=`【今日IB】${fmt(a.tibl)}–${fmt(a.tibh)}\n`;
+  if(a.sps.length>0)r+=`【昨日SP】${a.sps.map(s=>`${fmt(s.lo)}–${fmt(s.hi)}`).join(' ')}\n`;
+  if(a.wsps.length>0)r+=`【周线SP】${a.wsps.map(s=>`${fmt(s.lo)}–${fmt(s.hi)}`).join(' ')}\n`;
+  r+=`${'─'.repeat(30)}\n【三大场景】\n`;
+  a.sc.forEach(s=>r+=`${s.i} ${s.t}\n   ${s.sd}\n`);
+  if(a.entry){
+    r+=`${'─'.repeat(30)}\n【推算入场方案】${a.isBuy?'做多':'做空'}\n入场：${fmt(a.entry)} 止损：${fmt(a.sl)}(风险${fmt(a.risk)}pt)\nTP1：${fmt(a.tp1)}(R:R 1:${a.rr1}) TP2：${fmt(a.tp2)}(R:R 1:${a.rr2})\n`;
+  }
+  r+=`${'═'.repeat(30)}\n⚠️ 仅供参考，不构成交易建议`;
+  reportText=r;
+}
+
+function openShare(){buildReport();document.getElementById('shareText').textContent=reportText;document.getElementById('shareModal').classList.add('show');}
+function closeShare(){document.getElementById('shareModal').classList.remove('show');}
+function copyReport(){
+  navigator.clipboard.writeText(reportText).then(()=>{
+    const b=document.querySelector('.copy-btn');b.textContent='✅ 已复制！';setTimeout(()=>b.textContent='📋 复制报告',2000);
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=reportText;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    const b=document.querySelector('.copy-btn');b.textContent='✅ 已复制！';setTimeout(()=>b.textContent='📋 复制报告',2000);
+  });
+}
+
+// ===== SUPABASE INTEGRATION =====
+const SB_URL = 'https://ftznxhihkerxzxfptpar.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0em54aGloa2VyeHp4ZnB0cGFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDQzMDYsImV4cCI6MjA5NzA4MDMwNn0.FUCc3bULwq_r36Kn0GpIn7ixr-ivp7gycDiKd04PG_c';
+const UID_KEY_VP = 'vp_uid_v1';
+let supabaseClient = null;
+let currentUserId = '';
+
+function initSupabase() {
+  supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+}
+
+// ── LOGIN ──────────────────────────────────────────────
+async function doLogin() {
+  const val = document.getElementById('loginInput').value.trim().toLowerCase();
+  const errEl = document.getElementById('loginErr');
+  if (!val) { showLoginErr('请输入用户名'); return; }
+  if (!/^[a-z0-9_]{2,20}$/.test(val)) { showLoginErr('用户名只能用英文、数字、底线，2-20字'); return; }
+  currentUserId = val;
+  localStorage.setItem(UID_KEY_VP, val);
+  document.querySelector('#loginOverlay button').textContent = '载入中…';
+  document.querySelector('#loginOverlay button').disabled = true;
+  try {
+    await loadWeeklyData();
+    document.getElementById('loginOverlay').style.display = 'none';
+    const bar = document.getElementById('sbBar');
+    bar.style.display = 'flex';
+    document.getElementById('sbUser').textContent = '@' + currentUserId;
+  } catch(e) {
+    showLoginErr('连接失败：' + e.message);
+    document.querySelector('#loginOverlay button').textContent = '进入 →';
+    document.querySelector('#loginOverlay button').disabled = false;
+  }
+}
+function showLoginErr(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg; el.style.display = 'block';
+}
+function doLogout() {
+  localStorage.removeItem(UID_KEY_VP);
+  currentUserId = '';
+  document.getElementById('sbBar').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('loginInput').value = '';
+  document.querySelector('#loginOverlay button').textContent = '进入 →';
+  document.querySelector('#loginOverlay button').disabled = false;
+  document.getElementById('loginErr').style.display = 'none';
+}
+
+// ── LOAD WEEKLY DATA ───────────────────────────────────
+async function loadWeeklyData() {
+  if (!supabaseClient || !currentUserId) return;
+  // Get most recent week for current instrument
+  const { data, error } = await supabaseClient
+    .from('weekly_vp_mp')
+    .select('*')
+    .eq('user_id', currentUserId)
+    .eq('instrument', currentInst)
+    .order('week_start', { ascending: false })
+    .limit(1);
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    showSbStatus('未找到本周数据，请手动填写后保存');
+    return;
+  }
+  const d = data[0];
+  // Fill weekly VP fields
+  setField('w_vah', d.vp_vah);
+  setField('w_poc', d.vp_poc);
+  setField('w_val', d.vp_val);
+  setField('w_mpvah', d.mp_vah);
+  setField('w_mpoc', d.mp_poc);
+  setField('w_mpval', d.mp_val);
+  setField('w_ibh', d.ib_high);
+  setField('w_ibl', d.ib_low);
+  if (d.vp_shape) setShape('wvpShape', d.vp_shape);
+  // Restore weekly SPs
+  if (d.single_prints && Array.isArray(d.single_prints)) {
+    // Clear existing
+    wspStore.length = 0;
+    document.getElementById('wspList').innerHTML = '';
+    document.getElementById('wspAddBtn').style.display = 'block';
+    d.single_prints.forEach(sp => {
+      addSP('wspList', 'wspAddBtn', wspStore);
+      const sid = wspStore[wspStore.length - 1];
+      const hEl = document.getElementById(sid + 'h');
+      const lEl = document.getElementById(sid + 'l');
+      const dEl = document.getElementById(sid + 'dir');
+      if (hEl) hEl.value = sp.hi;
+      if (lEl) lEl.value = sp.lo;
+      if (dEl) dEl.value = sp.dir;
+    });
+  }
+  calcIB('w_ibh', 'w_ibl', 'wibBadge');
+  const wkStr = d.week_start ? ' (周起：' + d.week_start + ')' : '';
+  showSbStatus('✅ 周线数据已载入' + wkStr);
+}
+
+function setField(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== null && val !== undefined) el.value = val;
+}
+
+// ── SAVE WEEKLY DATA ───────────────────────────────────
+async function saveWeeklyData() {
+  if (!supabaseClient || !currentUserId) { alert('请先登录'); return; }
+  const btn = document.getElementById('saveWeekBtn');
+  btn.textContent = '保存中…'; btn.disabled = true;
+
+  // Get Monday of current week
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now.setDate(diff));
+  const weekStart = monday.toISOString().split('T')[0];
+
+  const wsps = getSPs(wspStore);
+  const payload = {
+    user_id: currentUserId,
+    instrument: currentInst,
+    week_start: weekStart,
+    vp_vah: gvNull('w_vah'),
+    vp_poc: gvNull('w_poc'),
+    vp_val: gvNull('w_val'),
+    vp_shape: getShape('wvpShape'),
+    mp_vah: gvNull('w_mpvah'),
+    mp_poc: gvNull('w_mpoc'),
+    mp_val: gvNull('w_mpval'),
+    ib_high: gvNull('w_ibh'),
+    ib_low: gvNull('w_ibl'),
+    single_prints: wsps,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabaseClient
+    .from('weekly_vp_mp')
+    .upsert(payload, { onConflict: 'user_id,instrument,week_start' });
+
+  if (error) {
+    alert('保存失败：' + error.message);
+  } else {
+    showSbStatus('✅ 本周数据已保存 ' + new Date().toLocaleTimeString('zh-TW'));
+  }
+  btn.textContent = '💾 保存本周数据'; btn.disabled = false;
+}
+
+// ── SAVE DAILY HISTORY (called after analyze) ─────────
+async function saveDailyHistory() {
+  if (!supabaseClient || !currentUserId || !lastAnalysis) return;
+  const today = new Date().toISOString().split('T')[0];
+  const a = lastAnalysis;
+  const sps = getSPs(spStore);
+  const payload = {
+    user_id: currentUserId,
+    instrument: currentInst,
+    trade_date: today,
+    vp_vah: gvNull('vah'),
+    vp_poc: gvNull('poc'),
+    vp_val: gvNull('val'),
+    vp_shape: getShape('vpShape'),
+    mp_vah: gvNull('mpvah'),
+    mp_poc: gvNull('mpoc'),
+    mp_val: gvNull('mpval'),
+    ib_high: gvNull('ibh'),
+    ib_low: gvNull('ibl'),
+    single_prints: sps,
+    close_price: gvNull('yclose'),
+    analysis_result: {
+      bias: a.bias, conf: a.conf, w_bias: a.w_bias,
+      open: gvNull('open'), bull: a.bull, bear: a.bear,
+    },
+    updated_at: new Date().toISOString(),
+  };
+  await supabaseClient.from('daily_vp_mp').upsert(payload, { onConflict: 'user_id,instrument,trade_date' });
+}
+
+function gvNull(id) {
+  const v = parseFloat(document.getElementById(id)?.value);
+  return isNaN(v) ? null : v;
+}
+function showSbStatus(msg) {
+  document.getElementById('sbLastSave').textContent = msg;
+}
+
+// ── INIT ───────────────────────────────────────────────
+initSupabase();
+// Auto-login if saved
+const savedUid = localStorage.getItem(UID_KEY_VP);
+if (savedUid) {
+  document.getElementById('loginInput').value = savedUid;
+  currentUserId = savedUid;
+  loadWeeklyData().then(() => {
+    document.getElementById('loginOverlay').style.display = 'none';
+    const bar = document.getElementById('sbBar');
+    bar.style.display = 'flex';
+    document.getElementById('sbUser').textContent = '@' + currentUserId;
+  }).catch(() => {
+    currentUserId = '';
+    localStorage.removeItem(UID_KEY_VP);
+  });
+}
+
+// ── HOOK INTO INSTRUMENT CHANGE ────────────────────────
+const origInstBtns = document.querySelectorAll('#instRow .inst-btn');
+origInstBtns.forEach(b => b.addEventListener('click', () => {
+  setTimeout(() => { if (currentUserId) loadWeeklyData(); }, 100);
+}));
+
+</script>
+</body>
+</html>

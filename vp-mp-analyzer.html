@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VP + MP 走势分析工具</title>
 <style>
@@ -16,10 +17,9 @@ header p{font-size:11px;color:var(--muted);margin-top:2px;}
 .inst-btn{background:var(--panel);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:all .18s;flex-shrink:0;}
 .inst-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(240,180,41,.08);}
 
-.back-to-tradelog{display:flex;align-items:center;gap:8px;background:rgba(38,166,154,.08);border:1px solid rgba(38,166,154,.2);border-radius:8px;padding:7px 12px;text-decoration:none;margin-bottom:10px;transition:all .2s;}
-.back-to-tradelog:hover{background:rgba(38,166,154,.15);}
-.back-to-tradelog span{font-size:12px;font-weight:700;color:#26a69a;}
-.back-to-tradelog small{font-size:10px;color:#6b7280;margin-left:4px;}
+.back-link{display:flex;align-items:center;gap:8px;background:rgba(38,166,154,.08);border:1px solid rgba(38,166,154,.2);border-radius:8px;padding:7px 12px;text-decoration:none;margin-bottom:10px;}
+.back-link span{font-size:12px;font-weight:700;color:#26a69a;}
+.back-link small{font-size:10px;color:#6b7280;margin-left:4px;}
 .inst-hint{font-size:10px;color:var(--muted);margin-bottom:12px;padding:6px 10px;background:var(--panel);border-radius:6px;border-left:2px solid var(--gold-dim);}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
 @media(max-width:680px){.grid2{grid-template-columns:1fr;}}
@@ -171,9 +171,39 @@ select option{background:var(--panel);}
   </div>
 </header>
 
-<a href="index.html" class="back-to-tradelog">
-  <span>← 返回交易復盤</span><small>TradeLog</small>
-</a>
+
+<!-- LOGIN -->
+<div id="loginOverlay" style="position:fixed;inset:0;background:#0b0e14;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:340px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="width:48px;height:48px;background:#f0b429;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;color:#000;margin:0 auto 10px;">VP</div>
+      <div style="font-size:18px;font-weight:800;color:#cdd6f4;">VP + MP 分析器</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px;">输入用户名，周线数据自动同步</div>
+    </div>
+    <div style="font-size:11px;color:#8892a4;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">用户名</div>
+    <input id="loginInput" type="text" placeholder="和復盤工具相同的用戶名" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      style="width:100%;background:#131720;border:1px solid #1e2535;border-radius:10px;color:#cdd6f4;font-size:15px;padding:12px 14px;outline:none;text-align:center;font-weight:600;margin-bottom:8px;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="font-size:11px;color:#6b7280;text-align:center;margin-bottom:14px;line-height:1.6;">與復盤工具輸入同一個用戶名<br>上周 VP/MP 數據自動載入</div>
+    <button id="loginBtn" onclick="doLogin()" style="width:100%;padding:12px;background:#f0b429;border:none;border-radius:10px;color:#000;font-size:15px;font-weight:800;cursor:pointer;">進入 →</button>
+    <div id="loginErr" style="font-size:12px;color:#ef5350;text-align:center;margin-top:8px;display:none;"></div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="sbBar" style="display:none;background:#131720;border:1px solid #1e2535;border-radius:8px;padding:8px 12px;margin-bottom:10px;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="width:7px;height:7px;border-radius:50%;background:#26a69a;box-shadow:0 0 6px #26a69a;flex-shrink:0;"></div>
+    <span style="font-size:12px;color:#cdd6f4;">@<span id="sbUser" style="color:#f0b429;font-weight:700;"></span></span>
+    <span id="sbMsg" style="font-size:11px;color:#6b7280;"></span>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <button onclick="saveWeekly()" id="saveBtn" style="font-size:11px;font-weight:700;padding:5px 10px;background:rgba(240,180,41,.12);border:1px solid rgba(240,180,41,.35);border-radius:6px;color:#f0b429;cursor:pointer;">💾 保存本周數據</button>
+    <button onclick="loadWeekly()" style="font-size:11px;font-weight:700;padding:5px 10px;background:rgba(38,166,154,.1);border:1px solid rgba(38,166,154,.3);border-radius:6px;color:#26a69a;cursor:pointer;">🔄 重新載入</button>
+    <button onclick="doLogout()" style="font-size:11px;padding:5px 8px;background:none;border:1px solid #1e2535;border-radius:6px;color:#6b7280;cursor:pointer;">退出</button>
+  </div>
+</div>
+<a href="index.html" class="back-link"><span>← 返回交易復盤</span><small>TradeLog</small></a>
 <div class="inst-row" id="instRow">
   <div class="inst-btn active" data-inst="GOLD">🥇 Gold</div>
   <div class="inst-btn" data-inst="BTC">₿ BTC</div>
@@ -925,6 +955,121 @@ function copyReport(){
     const b=document.querySelector('.copy-btn');b.textContent='✅ 已复制！';setTimeout(()=>b.textContent='📋 复制报告',2000);
   });
 }
+// ===== SUPABASE =====
+const SB_URL='https://ftznxhihkerxzxfptpar.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0em54aGloa2VyeHp4ZnB0cGFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDQzMDYsImV4cCI6MjA5NzA4MDMwNn0.FUCc3bULwq_r36Kn0GpIn7ixr-ivp7gycDiKd04PG_c';
+const UID_KEY='vp_uid_v1';
+let sb=null, uid='';
+
+function sbMsg(m){document.getElementById('sbMsg').textContent=m;}
+function gvN(id){const v=parseFloat(document.getElementById(id)?.value);return isNaN(v)?null:v;}
+function setF(id,v){const el=document.getElementById(id);if(el&&v!=null)el.value=v;}
+
+function initSB(){sb=supabase.createClient(SB_URL,SB_KEY);}
+
+async function doLogin(){
+  const v=document.getElementById('loginInput').value.trim().toLowerCase();
+  const err=document.getElementById('loginErr');
+  err.style.display='none';
+  if(!v){err.textContent='請輸入用戶名';err.style.display='block';return;}
+  if(!/^[a-z0-9_]{2,20}$/.test(v)){err.textContent='用戶名只能用英文、數字、底線';err.style.display='block';return;}
+  uid=v;
+  const btn=document.getElementById('loginBtn');
+  btn.textContent='載入中…';btn.disabled=true;
+  try{
+    await loadWeekly();
+    localStorage.setItem(UID_KEY,uid);
+    document.getElementById('loginOverlay').style.display='none';
+    const bar=document.getElementById('sbBar');
+    bar.style.display='flex';
+    document.getElementById('sbUser').textContent=uid;
+  }catch(e){
+    err.textContent='連接失敗：'+e.message;err.style.display='block';
+    uid='';
+  }
+  btn.textContent='進入 →';btn.disabled=false;
+}
+
+function doLogout(){
+  localStorage.removeItem(UID_KEY);uid='';
+  document.getElementById('sbBar').style.display='none';
+  document.getElementById('loginOverlay').style.display='flex';
+  document.getElementById('loginInput').value='';
+  document.getElementById('loginErr').style.display='none';
+}
+
+async function loadWeekly(){
+  if(!sb||!uid)return;
+  const {data,error}=await sb.from('weekly_vp_mp').select('*')
+    .eq('user_id',uid).eq('instrument',currentInst)
+    .order('week_start',{ascending:false}).limit(1);
+  if(error)throw new Error(error.message);
+  if(!data||!data.length){sbMsg('未找到周線數據，請手動填寫後保存');return;}
+  const d=data[0];
+  setF('w_vah',d.vp_vah);setF('w_poc',d.vp_poc);setF('w_val',d.vp_val);
+  setF('w_mpvah',d.mp_vah);setF('w_mpoc',d.mp_poc);setF('w_mpval',d.mp_val);
+  setF('w_ibh',d.ib_high);setF('w_ibl',d.ib_low);
+  if(d.vp_shape)setShape('wvpShape',d.vp_shape);
+  if(d.single_prints&&Array.isArray(d.single_prints)){
+    wspStore.length=0;
+    document.getElementById('wspList').innerHTML='';
+    document.getElementById('wspAddBtn').style.display='block';
+    d.single_prints.forEach(sp=>{
+      addSP('wspList','wspAddBtn',wspStore);
+      const sid=wspStore[wspStore.length-1];
+      const hEl=document.getElementById(sid+'h');
+      const lEl=document.getElementById(sid+'l');
+      const dEl=document.getElementById(sid+'dir');
+      if(hEl)hEl.value=sp.hi;
+      if(lEl)lEl.value=sp.lo;
+      if(dEl)dEl.value=sp.dir;
+    });
+  }
+  calcIB('w_ibh','w_ibl','wibBadge');
+  sbMsg('✅ 周線數據已載入 ('+d.week_start+')');
+}
+
+async function saveWeekly(){
+  if(!sb||!uid){alert('請先登入');return;}
+  const btn=document.getElementById('saveBtn');
+  btn.textContent='保存中…';btn.disabled=true;
+  const now=new Date(),day=now.getDay(),diff=now.getDate()-day+(day===0?-6:1);
+  const mon=new Date(now.setDate(diff));
+  const weekStart=mon.toISOString().split('T')[0];
+  const wsps=getSPs(wspStore);
+  const payload={
+    user_id:uid,instrument:currentInst,week_start:weekStart,
+    vp_vah:gvN('w_vah'),vp_poc:gvN('w_poc'),vp_val:gvN('w_val'),
+    vp_shape:getShape('wvpShape'),
+    mp_vah:gvN('w_mpvah'),mp_poc:gvN('w_mpoc'),mp_val:gvN('w_mpval'),
+    ib_high:gvN('w_ibh'),ib_low:gvN('w_ibl'),
+    single_prints:wsps,
+    updated_at:new Date().toISOString(),
+  };
+  const {error}=await sb.from('weekly_vp_mp').upsert(payload,{onConflict:'user_id,instrument,week_start'});
+  if(error){alert('保存失敗：'+error.message);}
+  else{sbMsg('✅ 已保存 '+new Date().toLocaleTimeString());}
+  btn.textContent='💾 保存本周數據';btn.disabled=false;
+}
+
+// Init
+initSB();
+const savedUid=localStorage.getItem(UID_KEY);
+if(savedUid){
+  document.getElementById('loginInput').value=savedUid;
+  uid=savedUid;
+  loadWeekly().then(()=>{
+    document.getElementById('loginOverlay').style.display='none';
+    const bar=document.getElementById('sbBar');bar.style.display='flex';
+    document.getElementById('sbUser').textContent=uid;
+  }).catch(()=>{uid='';localStorage.removeItem(UID_KEY);});
+}
+
+// Reload weekly when switching instrument
+document.querySelectorAll('#instRow .inst-btn').forEach(b=>b.addEventListener('click',()=>{
+  setTimeout(()=>{if(uid)loadWeekly();},120);
+}));
+
 </script>
 </body>
 </html>

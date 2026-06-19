@@ -759,12 +759,16 @@ function analyze(){
     if(isBuy){
       entry=open>vah?vah:poc; entryR=open>vah?'回踩昨VP VAH入多':'昨VP POC支撑入多';
       sl=open>vah?poc-(vaR*0.05):val-(vaR*0.05); slR=open>vah?'VP POC下方':'VP VAL下方';
-      tp1=!isNaN(ibh)?ibh:vah+vaR; tp1R='昨IB High/VA延伸';
+      // TP1 必须高于入场价，否则改用安全延伸目标
+      if(!isNaN(ibh)&&ibh>entry){ tp1=ibh; tp1R='昨IB High'; }
+      else { tp1=entry+vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
       tp2=!isNaN(w_vah)&&w_vah>tp1?w_vah:tp1+vaR*0.8; tp2R=!isNaN(w_vah)&&w_vah>tp1?'周线VP VAH':'延伸目标';
     } else {
       entry=open<val?val:poc; entryR=open<val?'反弹昨VP VAL入空':'昨VP POC阻力入空';
       sl=open<val?poc+(vaR*0.05):vah+(vaR*0.05); slR=open<val?'VP POC上方':'VP VAH上方';
-      tp1=!isNaN(ibl)?ibl:val-vaR; tp1R='昨IB Low/VA延伸';
+      // TP1 必须低于入场价，否则改用安全延伸目标
+      if(!isNaN(ibl)&&ibl<entry){ tp1=ibl; tp1R='昨IB Low'; }
+      else { tp1=entry-vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
       tp2=!isNaN(w_val)&&w_val<tp1?w_val:tp1-vaR*0.8; tp2R=!isNaN(w_val)&&w_val<tp1?'周线VP VAL':'延伸目标';
     }
     const risk=Math.abs(entry-sl),r1=Math.abs(tp1-entry),r2=Math.abs(tp2-entry);

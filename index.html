@@ -428,26 +428,26 @@ async function loadSettings(){
   }else{
     // first time — create default account
     userSettings={user_id:userId,accounts:[{id:'acct_1',name:'主帳號',color:COLORS[0]}],capital:{}};
-    await saveSettings();
+    await upsertSettings();
   }
   if(!userSettings.accounts.length){
     userSettings.accounts=[{id:'acct_1',name:'主帳號',color:COLORS[0]}];
-    await saveSettings();
+    await upsertSettings();
   }
 }
-async function saveSettings(){
-  const body={user_id:userId,accounts:userSettings.accounts,capital:userSettings.capital,updated_at:new Date().toISOString()};
-  const r=await fetch(SETTINGS_API+'?user_id=eq.'+encodeURIComponent(userId),{
-    method:'PATCH',headers:{...HDR,'Prefer':'return=minimal'},body:JSON.stringify(body)
-  });
-  // if 404/no rows, insert
-  if(r.status===404||(await r.text()).includes('0 rows')){
-    await fetch(SETTINGS_API,{method:'POST',headers:HDR,body:JSON.stringify(body)});
-  }
-}
+// 統一用 upsert：資料表有 user_id 為 primary key，
+// 用 Prefer: resolution=merge-duplicates 直接覆蓋，不需要先 PATCH 再判斷是否存在
 async function upsertSettings(){
   const body={user_id:userId,accounts:userSettings.accounts,capital:userSettings.capital,updated_at:new Date().toISOString()};
-  const r=await fetch(SETTINGS_API,{method:'POST',headers:{...HDR,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(body)});
+  const r=await fetch(SETTINGS_API,{
+    method:'POST',
+    headers:{...HDR,'Prefer':'resolution=merge-duplicates,return=representation'},
+    body:JSON.stringify(body)
+  });
+  if(!r.ok){
+    const errText=await r.text();
+    throw new Error('設定儲存失敗: '+errText);
+  }
   return r;
 }
 

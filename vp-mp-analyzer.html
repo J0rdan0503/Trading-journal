@@ -404,6 +404,7 @@ document.querySelectorAll('#instRow .inst-btn').forEach(b=>b.addEventListener('c
   b.classList.add('active'); currentInst=b.dataset.inst;
   document.getElementById('instHint').textContent=INST[currentInst].name+' — '+INST[currentInst].hint;
   calcIB('ibh','ibl','ibBadge'); calcIB('w_ibh','w_ibl','wibBadge'); calcTodayIB();
+  if(uid) setTimeout(()=>loadWeekly(),50);
 }));
 
 // Shape buttons - supports multiple groups
@@ -1045,6 +1046,7 @@ async function saveWeekly(){
     user_id:uid,instrument:currentInst,week_start:weekStart,
     vp_vah:gvN('w_vah'),vp_poc:gvN('w_poc'),vp_val:gvN('w_val'),
     vp_shape:getShape('wvpShape'),
+    ib_high:gvN('w_ibh'),ib_low:gvN('w_ibl'),
     mp_vah:gvN('w_mpvah'),mp_poc:gvN('w_mpoc'),mp_val:gvN('w_mpval'),
     ib_high:gvN('w_ibh'),ib_low:gvN('w_ibl'),
     single_prints:wsps,

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VP Dashboard — BTC & XAUUSD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#242424;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#e8e8e8;--text2:#999;--text3:#555;--btc:#F7931A;--xau:#C9A84C;--bull-bg:#1a2e1a;--bull:#4caf50;--bear-bg:#2e1a1a;--bear:#ef5350;--neu-bg:#242424;--neu:#888;--r:10px;--rs:6px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+.topnav{display:flex;align-items:center;gap:12px;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.topnav h1{font-size:15px;font-weight:600;margin-right:auto}
+.sym-btn{padding:6px 16px;border-radius:20px;border:1px solid var(--border2);cursor:pointer;font-size:13px;font-weight:500;background:transparent;color:var(--text2);transition:all .15s}
+.sym-btn.ab{background:var(--btc);color:#fff;border-color:var(--btc)}
+.sym-btn.ax{background:var(--xau);color:#fff;border-color:var(--xau)}
+.ss{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--text3);white-space:nowrap}
+.ss.ok{color:var(--bull);border-color:var(--bull)}.ss.err{color:var(--bear);border-color:var(--bear)}.ss.syn{color:var(--btc);border-color:var(--btc)}
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto;background:var(--bg2)}
+.tab{padding:10px 16px;font-size:13px;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color .15s}
+.tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500}
+.tab:hover:not(.active){color:var(--text)}
+.content{padding:24px;max-width:1100px;margin:0 auto}
+.pane{display:none}.pane.active{display:block}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
+.mc-l{font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.mc-v{font-size:20px;font-weight:600}
+.mc-s{font-size:11px;color:var(--text2);margin-top:4px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px}
+.ct{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:400;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);font-variant-numeric:tabular-nums}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg3)}
+.empty{color:var(--text3);text-align:center;padding:2rem!important}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.bb{background:var(--bull-bg);color:var(--bull)}.br{background:var(--bear-bg);color:var(--bear)}.bn{background:var(--neu-bg);color:var(--neu);border:1px solid var(--border)}
+.fr{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.fc{display:flex;flex-direction:column;gap:4px;flex:1;min-width:88px}
+.fc label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
+.fc input,.fc select{padding:8px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg3);color:var(--text);width:100%;outline:none;transition:border-color .15s}
+.fc input:focus{border-color:var(--text2)}
+.btn{padding:8px 16px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rs);cursor:pointer;color:var(--text);background:var(--bg3);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg2);border-color:var(--text2)}
+.btn-p{background:var(--text);color:var(--bg);border-color:var(--text)}.btn-p:hover{opacity:.85}
+.btn-d{color:var(--bear);border-color:var(--bear-bg)}.btn-d:hover{background:var(--bear-bg)}
+.btn-s{padding:5px 10px;font-size:11px}
+.aip{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:18px;min-height:120px;margin-bottom:14px}
+.ait{font-size:13px;line-height:1.8;white-space:pre-wrap}
+.aih{font-size:13px;color:var(--text3);font-style:italic}
+.mbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.mb{padding:6px 12px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--text2);transition:all .15s}
+.mb.act{background:var(--text);color:var(--bg);border-color:var(--text)}
+.ar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.cw{position:relative;width:100%;height:200px;margin-bottom:16px}
+.si{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg3);border-radius:var(--rs);font-size:12px;margin-bottom:6px;color:var(--text2)}
+.iobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
+.iobar span{font-size:12px;color:var(--text3);margin-right:4px}
+.ibox{padding:10px 14px;background:rgba(247,147,26,.08);border:1px solid rgba(247,147,26,.2);border-radius:var(--rs);font-size:12px;color:var(--text2);margin-bottom:16px}
+.dvd{border:none;border-top:1px solid var(--border);margin:20px 0}
+@media(max-width:600px){.g4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.content{padding:14px}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <h1>📊 VP Dashboard</h1>
+  <button class="sym-btn ab" id="btn-btc" onclick="switchSymbol('BTC')">₿ BTC/USDT</button>
+  <button class="sym-btn" id="btn-xau" onclick="switchSymbol('XAU')">◈ XAUUSD</button>
+  <span class="ss" id="ss">連線中...</span>
+</nav>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('overview',event)">總覽</button>
+  <button class="tab" onclick="switchTab('yearly',event)">年度</button>
+  <button class="tab" onclick="switchTab('monthly',event)">每月</button>
+  <button class="tab" onclick="switchTab('weekly',event)">每週</button>
+  <button class="tab" onclick="switchTab('daily',event)">每日</button>
+  <button class="tab" onclick="switchTab('input',event)">輸入數據</button>
+  <button class="tab" onclick="switchTab('ai',event)">AI 分析</button>
+</div>
+<div class="content">
+
+<!-- OVERVIEW -->
+<div id="pane-overview" class="pane active">
+  <div class="g4">
+    <div class="mc"><div class="mc-l">去年 POC</div><div class="mc-v" id="ov-ly">—</div><div class="mc-s" id="ov-ly-b">—</div></div>
+    <div class="mc"><div class="mc-l">今年 POC</div><div class="mc-v" id="ov-ty">—</div><div class="mc-s" id="ov-ty-b">—</div></div>
+    <div class="mc"><div class="mc-l">本月 POC</div><div class="mc-v" id="ov-mo">—</div><div class="mc-s" id="ov-mo-b">—</div></div>
+    <div class="mc"><div class="mc-l">本週 POC</div><div class="mc-v" id="ov-wk">—</div><div class="mc-s" id="ov-wk-b">—</div></div>
+  </div>
+  <div class="card">
+    <div class="ct">市場結構快覽</div>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th style="width:72px">框架</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA 寬度</th><th>偏向</th></tr></thead><tbody id="ov-tbody"><tr><td colspan="6" class="empty">請先在「輸入數據」填入數據</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- YEARLY -->
+<div id="pane-yearly" class="pane">
+  <div class="g2">
+    <div class="card"><div class="ct">去年</div><table class="tbl"><thead><tr><th>欄位</th><th>數值</th></tr></thead><tbody id="ly-tbody"><tr><td colspan="2" class="empty">無數據</td></tr></tbody></table></div>
+    <div class="card">
+      <div class="ct">今年（即時）</div>
+      <table class="tbl"><thead><tr><th>欄位</th><th>數值</th></tr></thead><tbody id="ty-tbody"><tr><td colspan="2" class="empty">無數據</td></tr></tbody></table>
+      <div style="margin-top:12px"><button class="btn btn-p btn-s" onclick="saveSnapshot()">📷 記錄本週快照</button></div>
+    </div>
+  </div>
+  <div class="card"><div class="ct">今年 POC 週快照歷史</div><div id="snap-list"><p style="color:var(--text3);font-size:12px;text-align:center;padding:1rem">尚無快照</p></div></div>
+</div>
+
+<!-- MONTHLY -->
+<div id="pane-monthly" class="pane">
+  <div class="cw"><canvas id="m-chart" role="img" aria-label="每月POC趨勢"></canvas></div>
+  <div class="card"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>月份</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA%</th><th>偏向</th></tr></thead><tbody id="m-tbody"><tr><td colspan="6" class="empty">無數據</td></tr></tbody></table></div></div>
+</div>
+
+<!-- WEEKLY -->
+<div id="pane-weekly" class="pane">
+  <div class="cw"><canvas id="w-chart" role="img" aria-label="每週POC趨勢"></canvas></div>
+  <div class="card"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>週次</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA%</th><th>偏向</th></tr></thead><tbody id="w-tbody"><tr><td colspan="6" class="empty">無數據</td></tr></tbody></table></div></div>
+</div>
+
+<!-- DAILY -->
+<div id="pane-daily" class="pane">
+  <div class="cw"><canvas id="d-chart" role="img" aria-label="每日POC趨勢"></canvas></div>
+  <div class="card"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>日期</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA%</th><th>偏向</th></tr></thead><tbody id="d-tbody"><tr><td colspan="6" class="empty">無數據</td></tr></tbody></table></div></div>
+</div>
+
+<!-- INPUT -->
+<div id="pane-input" class="pane">
+  <div class="iobar">
+    <span>備份：</span>
+    <button class="btn btn-s" onclick="exportData()">⬇ 匯出 JSON</button>
+    <button class="btn btn-s" onclick="document.getElementById('imp').click()">⬆ 匯入 JSON</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn btn-s btn-d" onclick="clearSym()">✕ 清除此品種</button>
+    <button class="btn btn-s" onclick="loadFromDB()" style="margin-left:auto">↻ 從雲端重新載入</button>
+  </div>
+  <div class="ibox" id="inp-hint">目前品種：BTC/USDT — 數據同步至 Supabase 雲端，跨裝置共享。</div>
+
+  <div class="card"><div class="ct">去年 VP</div>
+    <div class="fr">
+      <div class="fc"><label>年份</label><input type="number" id="ly-year" value="2024"></div>
+      <div class="fc"><label>POC</label><input type="number" id="ly-poc" placeholder="BTC≈65000 / XAU≈2050"></div>
+      <div class="fc"><label>VAH</label><input type="number" id="ly-vah"></div>
+      <div class="fc"><label>VAL</label><input type="number" id="ly-val"></div>
+      <div class="fc"><label>High</label><input type="number" id="ly-high"></div>
+      <div class="fc"><label>Low</label><input type="number" id="ly-low"></div>
+      <button class="btn btn-p" onclick="saveLY()" style="align-self:flex-end">儲存</button>
+    </div>
+  </div>
+
+  <div class="card"><div class="ct">今年 VP（每週更新）</div>
+    <div class="fr">
+      <div class="fc"><label>更新日期</label><input type="date" id="ty-date"></div>
+      <div class="fc"><label>POC</label><input type="number" id="ty-poc"></div>
+      <div class="fc"><label>VAH</label><input type="number" id="ty-vah"></div>
+      <div class="fc"><label>VAL</label><input type="number" id="ty-val"></div>
+      <div class="fc"><label>High</label><input type="number" id="ty-high"></div>
+      <div class="fc"><label>Low</label><input type="number" id="ty-low"></div>
+      <button class="btn btn-p" onclick="saveTY()" style="align-self:flex-end">儲存 + 快照</button>
+    </div>
+  </div>
+
+  <div class="card"><div class="ct">月度 VP</div>
+    <div class="fr">
+      <div class="fc"><label>月份</label><input type="month" id="m-month"></div>
+      <div class="fc"><label>POC</label><input type="number" id="m-poc"></div>
+      <div class="fc"><label>VAH</label><input type="number" id="m-vah"></div>
+      <div class="fc"><label>VAL</label><input type="number" id="m-val"></div>
+      <div class="fc"><label>High</label><input type="number" id="m-high"></div>
+      <div class="fc"><label>Low</label><input type="number" id="m-low"></div>
+      <button class="btn btn-p" onclick="saveMo()" style="align-self:flex-end">新增</button>
+    </div>
+  </div>
+
+  <div class="card"><div class="ct">週度 VP</div>
+    <div class="fr">
+      <div class="fc"><label>週開始日</label><input type="date" id="w-date"></div>
+      <div class="fc"><label>POC</label><input type="number" id="w-poc"></div>
+      <div class="fc"><label>VAH</label><input type="number" id="w-vah"></div>
+      <div class="fc"><label>VAL</label><input type="number" id="w-val"></div>
+      <div class="fc"><label>High</label><input type="number" id="w-high"></div>
+      <div class="fc"><label>Low</label><input type="number" id="w-low"></div>
+      <button class="btn btn-p" onclick="saveWk()" style="align-self:flex-end">新增</button>
+    </div>
+  </div>
+
+  <div class="card"><div class="ct">日度 VP</div>
+    <div class="fr">
+      <div class="fc"><label>日期</label><input type="date" id="d-date"></div>
+      <div class="fc"><label>POC</label><input type="number" id="d-poc"></div>
+      <div class="fc"><label>VAH</label><input type="number" id="d-vah"></div>
+      <div class="fc"><label>VAL</label><input type="number" id="d-val"></div>
+      <div class="fc"><label>High</label><input type="number" id="d-high"></div>
+      <div class="fc"><label>Low</label><input type="number" id="d-low"></div>
+      <button class="btn btn-p" onclick="saveDy()" style="align-self:flex-end">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI -->
+<div id="pane-ai" class="pane">
+  <div class="ibox" id="ai-hint-box">品種：BTC/USDT — AI 提示詞已針對加密貨幣市場特性優化。</div>
+  <div class="ct" style="margin-bottom:10px">分析模式</div>
+  <div class="mbar">
+    <button class="mb act" onclick="setMode(this,'structure')">市場結構</button>
+    <button class="mb" onclick="setMode(this,'levels')">關鍵支撐壓力</button>
+    <button class="mb" onclick="setMode(this,'confluence')">多框架一致性</button>
+    <button class="mb" onclick="setMode(this,'strategy')">操作策略</button>
+    <button class="mb" onclick="setMode(this,'full')">全面深度分析</button>
+  </div>
+  <div class="ar">
+    <button class="btn btn-p" onclick="runAI(false)">🧠 在此分析</button>
+    <button class="btn" onclick="runAI(true)">↗ 送至聊天框</button>
+  </div>
+  <div class="aip" id="ai-panel"><p class="aih">點擊「在此分析」，Claude 將讀取你的 VP 數據並在此顯示分析結果。</p></div>
+  <div style="display:flex;gap:8px;margin-bottom:20px">
+    <button class="btn btn-s" id="copy-btn" onclick="copyAI()" style="display:none">複製結果</button>
+  </div>
+  <div class="dvd"></div>
+  <div class="ct" style="margin-bottom:10px">快速追問</div>
+  <div class="fr" style="margin-bottom:10px">
+    <div class="fc" style="flex:1"><input type="text" id="qa" placeholder="例：本週 POC 上方阻力如何？今日適合做多嗎？"></div>
+  </div>
+  <div class="ar">
+    <button class="btn btn-p" onclick="quickAsk(false)">🧠 在此回答</button>
+    <button class="btn" onclick="quickAsk(true)">↗ 送至聊天框</button>
+  </div>
+</div>
+
+</div>
+<script>
+const SUPA_URL='https://ftznxhihkerxzxfptpar.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0em54aGloa2VyeHp4ZnB0cGFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDQzMDYsImV4cCI6MjA5NzA4MDMwNn0.FUCc3bULwq_r36Kn0GpIn7ixr-ivp7gycDiKd04PG_c';
+const db=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+const SYMS={
+  BTC:{label:'BTC/USDT',dec:0,color:'#F7931A',aiCtx:'加密貨幣市場，BTC/USDT，7天24小時交易，受宏觀情緒、鏈上數據、CME期貨、ETF資金流影響，波動劇烈，注意整數關口和歷史高低點'},
+  XAU:{label:'XAUUSD',dec:2,color:'#C9A84C',aiCtx:'現貨黃金市場，受美元指數(DXY)、美債收益率、地緣政治風險、央行購金、美聯儲政策影響，注意倫敦定盤價和紐約盤重疊時段'}
+};
+let cur='BTC',aiMode='structure',aiText='',charts={};
+let state={
+  BTC:{lastYear:null,thisYear:null,snapshots:[],monthly:[],weekly:[],daily:[]},
+  XAU:{lastYear:null,thisYear:null,snapshots:[],monthly:[],weekly:[],daily:[]}
+};
+
+const n=v=>(v!=null&&v!=='')?parseFloat(v):null;
+function fmt(v){if(v==null)return'—';return Number(v).toLocaleString(undefined,{minimumFractionDigits:SYMS[cur].dec,maximumFractionDigits:SYMS[cur].dec});}
+function bias(poc,vah,val){if(poc==null||vah==null||val==null)return'neu';const mid=(vah+val)/2,range=vah-val;if(range===0)return'neu';const r=(poc-mid)/range;return r>0.08?'bull':r<-0.08?'bear':'neu';}
+function bBadge(b){return b==='bull'?'<span class="badge bb">偏多</span>':b==='bear'?'<span class="badge br">偏空</span>':'<span class="badge bn">中性</span>';}
+function bLabel(b){return b==='bull'?'偏多':b==='bear'?'偏空':'中性';}
+function vaW(vah,val,poc){if(vah==null||val==null||poc==null||poc===0)return'—';return((vah-val)/poc*100).toFixed(2)+'%';}
+function setSS(msg,cls){const e=document.getElementById('ss');e.textContent=msg;e.className='ss'+(cls?' '+cls:'');}
+function S(){return state[cur];}
+
+async function loadFromDB(){
+  setSS('載入中...','syn');
+  try{
+    const{data:yr}=await db.from('vp_yearly').select('*').in('symbol',['BTC','XAU']);
+    if(yr)yr.forEach(r=>{if(state[r.symbol]){state[r.symbol].lastYear=r.last_year;state[r.symbol].thisYear=r.this_year;state[r.symbol].snapshots=r.snapshots||[];}});
+    const{data:ts}=await db.from('vp_data').select('*').in('symbol',['BTC','XAU']);
+    if(ts){['BTC','XAU'].forEach(sym=>{state[sym].monthly=ts.filter(r=>r.symbol===sym&&r.frame==='monthly').map(toEntry);state[sym].weekly=ts.filter(r=>r.symbol===sym&&r.frame==='weekly').map(toEntry);state[sym].daily=ts.filter(r=>r.symbol===sym&&r.frame==='daily').map(toEntry);});}
+    setSS('已同步 ✓','ok');renderAll();
+  }catch(e){setSS('離線模式','err');}
+}
+function toEntry(r){return{label:r.label,poc:r.poc,vah:r.vah,val:r.val,high:r.high,low:r.low};}
+
+async function upsertYearly(){
+  setSS('同步中...','syn');
+  try{
+    await db.from('vp_yearly').upsert({symbol:cur,last_year:S().lastYear,this_year:S().thisYear,snapshots:S().snapshots,updated_at:new Date().toISOString()},{onConflict:'symbol'});
+    setSS('已同步 ✓','ok');
+  }catch(e){setSS('同步失敗','err');}
+}
+async function upsertRow(frame,label,row){
+  setSS('同步中...','syn');
+  try{
+    await db.from('vp_data').upsert({symbol:cur,frame,label,poc:row.poc,vah:row.vah,val:row.val,high:row.high,low:row.low,updated_at:new Date().toISOString()},{onConflict:'symbol,frame,label'});
+    setSS('已同步 ✓','ok');
+  }catch(e){setSS('同步失敗','err');}
+}
+
+function switchSymbol(sym){
+  cur=sym;
+  document.getElementById('btn-btc').className='sym-btn'+(sym==='BTC'?' ab':'');
+  document.getElementById('btn-xau').className='sym-btn'+(sym==='XAU'?' ax':'');
+  document.getElementById('inp-hint').textContent='目前品種：'+SYMS[sym].label+' — 數據同步至 Supabase 雲端，跨裝置共享。';
+  document.getElementById('ai-hint-box').textContent='品種：'+SYMS[sym].label+' — AI 提示詞已針對'+(sym==='BTC'?'加密貨幣':'貴金屬黃金')+'市場特性優化。';
+  renderAll();
+}
+
+let curTab='overview';
+function switchTab(name,ev){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  ev.target.classList.add('active');
+  curTab=name;renderAll();
+}
+
+function renderAll(){
+  const s=S();
+  if(curTab==='overview')renderOV(s);
+  if(curTab==='yearly')renderYR(s);
+  if(curTab==='monthly')renderTS('m-chart',s.monthly,'m-tbody','monthly');
+  if(curTab==='weekly')renderTS('w-chart',s.weekly,'w-tbody','weekly');
+  if(curTab==='daily')renderTS('d-chart',s.daily,'d-tbody','daily');
+}
+
+function renderOV(s){
+  function setMC(sfx,d){document.getElementById('ov-'+sfx).textContent=d?fmt(d.poc):'—';const b=d?bias(d.poc,d.vah,d.val):'neu';document.getElementById('ov-'+sfx+'-b').textContent=bLabel(b);}
+  const sm=[...s.monthly].sort((a,b)=>a.label.localeCompare(b.label));
+  const sw=[...s.weekly].sort((a,b)=>a.label.localeCompare(b.label));
+  setMC('ly',s.lastYear);setMC('ty',s.thisYear);setMC('mo',sm.slice(-1)[0]||null);setMC('wk',sw.slice(-1)[0]||null);
+  const rows=[
+    s.lastYear?['去年',s.lastYear]:null,s.thisYear?['今年',s.thisYear]:null,
+    ...sm.slice(-4).map(d=>['月:'+d.label,d]),...sw.slice(-3).map(d=>['週:'+d.label,d]),
+    ...[...s.daily].sort((a,b)=>a.label.localeCompare(b.label)).slice(-3).map(d=>['日:'+d.label,d])
+  ].filter(Boolean);
+  const tb=document.getElementById('ov-tbody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="empty">請先在「輸入數據」填入數據</td></tr>';return;}
+  tb.innerHTML=rows.map(([l,d])=>{const b=bias(d.poc,d.vah,d.val);return`<tr><td>${l}</td><td>${fmt(d.poc)}</td><td>${fmt(d.vah)}</td><td>${fmt(d.val)}</td><td>${vaW(d.vah,d.val,d.poc)}</td><td>${bBadge(b)}</td></tr>`;}).join('');
+}
+
+function renderYR(s){
+  function det(id,d){const el=document.getElementById(id);if(!d){el.innerHTML='<tr><td colspan="2" class="empty">無數據</td></tr>';return;}const b=bias(d.poc,d.vah,d.val);el.innerHTML=[['POC',fmt(d.poc)],['VAH',fmt(d.vah)],['VAL',fmt(d.val)],['High',fmt(d.high)],['Low',fmt(d.low)],['VA 寬度',vaW(d.vah,d.val,d.poc)],['偏向',bBadge(b)]].map(([k,v])=>`<tr><td style="color:var(--text2)">${k}</td><td>${v}</td></tr>`).join('');}
+  det('ly-tbody',s.lastYear);det('ty-tbody',s.thisYear);
+  const sl=document.getElementById('snap-list');
+  if(!s.snapshots.length){sl.innerHTML='<p style="color:var(--text3);font-size:12px;text-align:center;padding:1rem">尚無快照</p>';return;}
+  sl.innerHTML=[...s.snapshots].reverse().map(sn=>{const b=bias(sn.poc,sn.vah,sn.val);return`<div class="si"><span>${sn.date} · POC: ${fmt(sn.poc)} · VAH: ${fmt(sn.vah)} · VAL: ${fmt(sn.val)}</span>${bBadge(b)}</div>`;}).join('');
+}
+
+function renderTS(canvasId,rawData,tbodyId,key){
+  const data=[...rawData].sort((a,b)=>a.label.localeCompare(b.label));
+  const tb=document.getElementById(tbodyId);
+  if(!data.length){if(tb)tb.innerHTML='<tr><td colspan="6" class="empty">無數據</td></tr>';return;}
+  if(tb)tb.innerHTML=data.map(d=>{const b=bias(d.poc,d.vah,d.val);return`<tr><td>${d.label}</td><td>${fmt(d.poc)}</td><td>${fmt(d.vah)}</td><td>${fmt(d.val)}</td><td>${vaW(d.vah,d.val,d.poc)}</td><td>${bBadge(b)}</td></tr>`;}).join('');
+  if(charts[key])charts[key].destroy();
+  const ctx=document.getElementById(canvasId);if(!ctx)return;
+  const c=SYMS[cur].color;
+  charts[key]=new Chart(ctx.getContext('2d'),{type:'line',data:{labels:data.map(d=>d.label),datasets:[{label:'POC',data:data.map(d=>d.poc),borderColor:c,backgroundColor:c+'18',tension:0.3,pointRadius:4,pointBackgroundColor:c,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:true,maxRotation:40,font:{size:10},color:'#555'},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{font:{size:10},color:'#555'},grid:{color:'rgba(255,255,255,0.04)'}}}}}});
+}
+
+async function saveLY(){S().lastYear={poc:n(document.getElementById('ly-poc').value),vah:n(document.getElementById('ly-vah').value),val:n(document.getElementById('ly-val').value),high:n(document.getElementById('ly-high').value),low:n(document.getElementById('ly-low').value),year:document.getElementById('ly-year').value};await upsertYearly();alert(SYMS[cur].label+' 去年 VP 已儲存並同步 ✓');}
+async function saveTY(){const dt=document.getElementById('ty-date').value||new Date().toISOString().slice(0,10);S().thisYear={poc:n(document.getElementById('ty-poc').value),vah:n(document.getElementById('ty-vah').value),val:n(document.getElementById('ty-val').value),high:n(document.getElementById('ty-high').value),low:n(document.getElementById('ty-low').value),date:dt};S().snapshots=S().snapshots.filter(x=>x.date!==dt);S().snapshots.push({date:dt,poc:S().thisYear.poc,vah:S().thisYear.vah,val:S().thisYear.val});await upsertYearly();alert('今年 VP 已儲存並記錄快照 ✓');}
+async function saveSnapshot(){if(!S().thisYear){alert('請先儲存今年 VP');return;}const dt=new Date().toISOString().slice(0,10);S().snapshots=S().snapshots.filter(x=>x.date!==dt);S().snapshots.push({date:dt,poc:S().thisYear.poc,vah:S().thisYear.vah,val:S().thisYear.val});await upsertYearly();renderAll();alert('週快照已記錄並同步 ✓');}
+async function saveMo(){const lbl=document.getElementById('m-month').value;if(!lbl){alert('請選月份');return;}const row={label:lbl,poc:n(document.getElementById('m-poc').value),vah:n(document.getElementById('m-vah').value),val:n(document.getElementById('m-val').value),high:n(document.getElementById('m-high').value),low:n(document.getElementById('m-low').value)};S().monthly=S().monthly.filter(r=>r.label!==lbl);S().monthly.push(row);await upsertRow('monthly',lbl,row);alert('月度 VP 已新增並同步 ✓');}
+async function saveWk(){const lbl=document.getElementById('w-date').value;if(!lbl){alert('請選週開始日');return;}const row={label:lbl,poc:n(document.getElementById('w-poc').value),vah:n(document.getElementById('w-vah').value),val:n(document.getElementById('w-val').value),high:n(document.getElementById('w-high').value),low:n(document.getElementById('w-low').value)};S().weekly=S().weekly.filter(r=>r.label!==lbl);S().weekly.push(row);await upsertRow('weekly',lbl,row);alert('週度 VP 已新增並同步 ✓');}
+async function saveDy(){const lbl=document.getElementById('d-date').value;if(!lbl){alert('請選日期');return;}const row={label:lbl,poc:n(document.getElementById('d-poc').value),vah:n(document.getElementById('d-vah').value),val:n(document.getElementById('d-val').value),high:n(document.getElementById('d-high').value),low:n(document.getElementById('d-low').value)};S().daily=S().daily.filter(r=>r.label!==lbl);S().daily.push(row);await upsertRow('daily',lbl,row);alert('日度 VP 已新增並同步 ✓');}
+
+function exportData(){const blob=new Blob([JSON.stringify({[cur]:S()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vp_'+cur.toLowerCase()+'_'+new Date().toISOString().slice(0,10)+'.json';a.click();}
+function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async ev=>{try{const d=JSON.parse(ev.target.result);if(d[cur]){state[cur]=d[cur];await upsertYearly();renderAll();alert('匯入並同步成功 ✓');}else alert('JSON 中找不到 '+cur+' 的數據');}catch{alert('JSON 格式錯誤');}};r.readAsText(f);}
+async function clearSym(){if(!confirm('確定清除 '+SYMS[cur].label+' 所有數據？'))return;state[cur]={lastYear:null,thisYear:null,snapshots:[],monthly:[],weekly:[],daily:[]};await db.from('vp_yearly').delete().match({symbol:cur});await db.from('vp_data').delete().match({symbol:cur});renderAll();setSS('已清除 ✓','ok');alert('已清除並同步');}
+
+function setMode(btn,mode){document.querySelectorAll('.mb').forEach(b=>b.classList.remove('act'));btn.classList.add('act');aiMode=mode;}
+
+function buildSummary(){
+  const s=S();const sym=SYMS[cur];
+  let txt=`品種：${sym.label}\n市場背景：${sym.aiCtx}\n\n`;
+  if(s.lastYear)txt+=`【去年VP】 POC:${fmt(s.lastYear.poc)} VAH:${fmt(s.lastYear.vah)} VAL:${fmt(s.lastYear.val)} High:${fmt(s.lastYear.high)} Low:${fmt(s.lastYear.low)}\n`;
+  if(s.thisYear)txt+=`【今年VP】 POC:${fmt(s.thisYear.poc)} VAH:${fmt(s.thisYear.vah)} VAL:${fmt(s.thisYear.val)} High:${fmt(s.thisYear.high)} Low:${fmt(s.thisYear.low)}\n`;
+  const ml=[...s.monthly].sort((a,b)=>a.label.localeCompare(b.label)).slice(-6);
+  if(ml.length){txt+=`【近${ml.length}月VP】\n`;ml.forEach(d=>txt+=`  ${d.label}: POC:${fmt(d.poc)} VAH:${fmt(d.vah)} VAL:${fmt(d.val)} VA寬:${vaW(d.vah,d.val,d.poc)}\n`);}
+  const wl=[...s.weekly].sort((a,b)=>a.label.localeCompare(b.label)).slice(-6);
+  if(wl.length){txt+=`【近${wl.length}週VP】\n`;wl.forEach(d=>txt+=`  ${d.label}: POC:${fmt(d.poc)} VAH:${fmt(d.vah)} VAL:${fmt(d.val)}\n`);}
+  const dl=[...s.daily].sort((a,b)=>a.label.localeCompare(b.label)).slice(-7);
+  if(dl.length){txt+=`【近${dl.length}日VP】\n`;dl.forEach(d=>txt+=`  ${d.label}: POC:${fmt(d.poc)} VAH:${fmt(d.vah)} VAL:${fmt(d.val)}\n`);}
+  return txt;
+}
+
+const PROMPTS={
+  structure:(s,c)=>`你是專業的 Volume Profile 技術分析師，專精${s}市場。請根據以下多時間框架 VP 數據分析：\n1. 目前市場狀態：平衡區間/趨勢延伸/轉換階段？\n2. POC 排列方向（年→月→週→日）傳達什麼訊息？\n3. VA 寬度變化（收縮/擴張）代表什麼？\n4. 多空力量對比\n請用繁體中文，條列清晰，每點 2-3 句。`,
+  levels:(s,c)=>`你是專業的 Volume Profile 分析師，專精${s}市場。請識別：\n1. 強支撐位（具體價格+重要程度：強/中/弱+成因）\n2. 強壓力位（同上）\n3. 最重要的 High Volume Node（POC 集中區）\n4. Low Volume Node（容易快速穿越的低成交區）\n請用繁體中文，每個位置說明清楚，數字要具體。`,
+  confluence:(s,c)=>`你是專業的 Volume Profile 分析師，專精${s}市場。請分析多框架一致性：\n1. 年/月/週/日 POC 排列方向是否一致？\n2. 整體趨勢方向評估\n3. 多框架一致性評分（0-10分）及詳細理由\n4. 主要矛盾/分歧在哪？交易者應如何應對？\n請用繁體中文，分析要有邏輯推導。`,
+  strategy:(s,c)=>`你是專業的 Volume Profile 交易策略師，專精${s}市場（${c}）。請給出具體策略：\n1. 目前方向偏多/偏空/觀望+理由\n2. 最佳進場區間（具體價格+說明）\n3. 止損位（具體價格+邏輯）\n4. 目標位 TP1/TP2（具體價格）\n5. 風險報酬比評估\n6. 失效條件（哪種情況代表判斷錯誤）\n請用繁體中文，數字必須具體。`,
+  full:(s,c)=>`你是頂級的 Volume Profile 技術分析師，專精${s}市場（${c}）。請進行全面深度分析：\n\n一、市場結構判斷（平衡/趨勢/轉換，詳細說明原因）\n二、關鍵支撐壓力位（分框架列出，附重要程度和成因）\n三、多框架一致性分析（評分0-10+詳細說明）\n四、具體操作策略（方向+進場+止損+TP1+TP2+風報比）\n五、主要風險因素（列3點）\n六、本週最重要的一件事（一句話總結當前最關鍵的價位或信號）\n\n請用繁體中文，結構清晰，分析精準，數字具體。`
+};
+
+async function callClaude(prompt){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+  const d=await r.json();return d.content?.map(c=>c.text||'').join('')||'（無回應）';
+}
+
+async function runAI(toChat){
+  const s=S();
+  if(!s.lastYear&&!s.thisYear&&!s.monthly.length&&!s.weekly.length&&!s.daily.length){alert('請先填入 VP 數據');return;}
+  const summary=buildSummary();const sym=SYMS[cur].label;const ctx=SYMS[cur].aiCtx;
+  const prompt=PROMPTS[aiMode](sym,ctx)+'\n\n---VP 數據---\n'+summary;
+  if(toChat){window.open('https://claude.ai/new?prompt='+encodeURIComponent(prompt.slice(0,500)),'_blank');return;}
+  const panel=document.getElementById('ai-panel');
+  panel.innerHTML='<p class="aih">🧠 Claude 分析中，請稍候...</p>';
+  document.getElementById('copy-btn').style.display='none';
+  try{aiText=await callClaude(prompt);panel.innerHTML='<p class="ait">'+aiText.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</p>';document.getElementById('copy-btn').style.display='inline-block';}
+  catch(e){panel.innerHTML='<p class="aih" style="color:var(--bear)">分析失敗：'+e.message+'</p>';}
+}
+
+async function quickAsk(toChat){
+  const q=document.getElementById('qa').value.trim();if(!q){alert('請輸入問題');return;}
+  const summary=buildSummary();
+  const prompt=`你是 Volume Profile 分析師，專精${SYMS[cur].label}市場。\n\nVP 數據：\n${summary}\n\n用戶問題：${q}\n\n請用繁體中文，簡潔精準地回答（3-6句話，如有具體數字請給出）。`;
+  if(toChat){window.open('https://claude.ai/new?prompt='+encodeURIComponent(prompt.slice(0,500)),'_blank');return;}
+  const panel=document.getElementById('ai-panel');
+  panel.innerHTML='<p class="aih">🧠 回答中...</p>';
+  document.getElementById('copy-btn').style.display='none';
+  try{aiText=await callClaude(prompt);panel.innerHTML='<p class="ait">'+aiText.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</p>';document.getElementById('copy-btn').style.display='inline-block';}
+  catch(e){panel.innerHTML='<p class="aih" style="color:var(--bear)">失敗：'+e.message+'</p>';}
+}
+
+function copyAI(){navigator.clipboard.writeText(aiText).then(()=>alert('已複製 ✓')).catch(()=>{});}
+
+loadFromDB();
+</script>
+</body>
+</html>

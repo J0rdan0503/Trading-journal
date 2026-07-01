@@ -23,7 +23,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .screen{display:none;flex-direction:column;flex:1;overflow:hidden;position:relative;z-index:1}
 .screen.active{display:flex}
 
-/* login screen */
 #s-login{background:var(--bg);justify-content:center;align-items:center;padding:30px 24px}
 .login-box{width:100%;max-width:340px}
 .login-logo{text-align:center;margin-bottom:32px}
@@ -106,6 +105,24 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .capital-editor input:focus{border-color:var(--accent)}
 .cap-save-btn{padding:9px 16px;background:var(--accent);border:none;border-radius:8px;color:#080C14;font-size:13px;font-weight:700;cursor:pointer}
 
+/* ── TOOLS SECTION ── */
+.tools-section{margin-bottom:6px}
+.tools-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tool-card{display:flex;align-items:center;gap:10px;border-radius:12px;padding:11px 12px;cursor:pointer;text-decoration:none;transition:opacity 0.2s;position:relative;overflow:hidden}
+.tool-card:active{opacity:0.75}
+.tool-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px}
+.tc-vpa{background:linear-gradient(135deg,rgba(240,180,41,0.12),rgba(167,139,250,0.08));border:1px solid rgba(240,180,41,0.25)}
+.tc-vpa::before{background:linear-gradient(90deg,transparent,#f0b429,transparent)}
+.tc-vpd{background:linear-gradient(135deg,rgba(0,229,255,0.08),rgba(123,97,255,0.08));border:1px solid rgba(0,229,255,0.2)}
+.tc-vpd::before{background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.tool-icon{font-size:22px;line-height:1;flex-shrink:0}
+.tool-text{}
+.tool-name{font-size:12px;font-weight:700;letter-spacing:0.2px}
+.tool-sub{font-size:10px;color:var(--muted2);margin-top:2px;line-height:1.4}
+.tc-vpa .tool-name{color:#f0b429}
+.tc-vpd .tool-name{color:var(--accent)}
+.tool-arr{margin-left:auto;font-size:13px;color:var(--muted2);flex-shrink:0}
+
 .form-section{background:linear-gradient(135deg,var(--bg3),var(--bg2));border-radius:16px;padding:16px;border:1px solid var(--border2);margin-bottom:12px}
 .form-lbl{font-size:11px;color:var(--muted2);margin-bottom:6px;display:block;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
 .form-row{margin-bottom:14px}
@@ -186,13 +203,6 @@ canvas{display:block;width:100%!important}
 .empty p{font-size:14px;line-height:1.7}
 .toast{position:absolute;bottom:calc(84px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid rgba(0,229,255,0.2);border-radius:10px;padding:10px 18px;font-size:13px;white-space:nowrap;opacity:0;transition:opacity 0.2s;z-index:200;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
 .toast.show{opacity:1}
-
-.vp-link{display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(240,180,41,0.12),rgba(167,139,250,0.12));border:1px solid rgba(240,180,41,0.25);border-radius:10px;padding:7px 12px;cursor:pointer;text-decoration:none;transition:all 0.2s;margin-bottom:12px;}
-.vp-link:active{opacity:0.8}
-.vp-link-icon{font-size:18px;line-height:1}
-.vp-link-text{font-size:12px;font-weight:700;color:#f0b429;letter-spacing:0.3px}
-.vp-link-sub{font-size:10px;color:var(--muted2);margin-top:1px}
-.vp-link-arr{margin-left:auto;font-size:14px;color:var(--muted2)}
 .loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted2);font-size:14px;gap:10px}
 .spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -403,102 +413,63 @@ const COLORS=['#00E5FF','#00E676','#7B61FF','#FFD700','#FF3D57','#FF9800','#FF61
 const UID_KEY='tl_uid_v1';
 const CUR_ACCT_KEY='tl_cur_acct_v1';
 
-let userId='';
-let userSettings={accounts:[],capital:{}};
-let trades=[];
-let curAcctId='';
+let userId='',userSettings={accounts:[],capital:{}},trades=[],curAcctId='';
 let selDir='BUY',selExit='',isOther=false,curTab='home';
 let chartPnl=null,chartSes=null;
 
-// ── helpers ───────────────────────────────────────────
 function fmt(n){return(Number(n)>=0?'+':'')+Number(n).toFixed(2)}
 function fmtDate(s){if(!s)return'';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('zh-TW',{month:'short',day:'numeric'})}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function acctKey(acctId){return userId+'_'+acctId}
 
-// ── Supabase settings ─────────────────────────────────
 async function loadSettings(){
   const r=await fetch(SETTINGS_API+'?user_id=eq.'+encodeURIComponent(userId),{headers:HDR});
   if(!r.ok)throw new Error(await r.text());
   const d=await r.json();
-  if(d.length){
-    userSettings=d[0];
-    if(!userSettings.accounts)userSettings.accounts=[];
-    if(!userSettings.capital)userSettings.capital={};
-  }else{
-    // first time — create default account
-    userSettings={user_id:userId,accounts:[{id:'acct_1',name:'主帳號',color:COLORS[0]}],capital:{}};
-    await upsertSettings();
-  }
-  if(!userSettings.accounts.length){
-    userSettings.accounts=[{id:'acct_1',name:'主帳號',color:COLORS[0]}];
-    await upsertSettings();
-  }
+  if(d.length){userSettings=d[0];if(!userSettings.accounts)userSettings.accounts=[];if(!userSettings.capital)userSettings.capital={};}
+  else{userSettings={user_id:userId,accounts:[{id:'acct_1',name:'主帳號',color:COLORS[0]}],capital:{}};await upsertSettings();}
+  if(!userSettings.accounts.length){userSettings.accounts=[{id:'acct_1',name:'主帳號',color:COLORS[0]}];await upsertSettings();}
 }
-// 統一用 upsert：資料表有 user_id 為 primary key，
-// 用 Prefer: resolution=merge-duplicates 直接覆蓋，不需要先 PATCH 再判斷是否存在
 async function upsertSettings(){
   const body={user_id:userId,accounts:userSettings.accounts,capital:userSettings.capital,updated_at:new Date().toISOString()};
-  const r=await fetch(SETTINGS_API,{
-    method:'POST',
-    headers:{...HDR,'Prefer':'resolution=merge-duplicates,return=representation'},
-    body:JSON.stringify(body)
-  });
-  if(!r.ok){
-    const errText=await r.text();
-    throw new Error('設定儲存失敗: '+errText);
-  }
+  const r=await fetch(SETTINGS_API,{method:'POST',headers:{...HDR,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error('設定儲存失敗: '+await r.text());
   return r;
 }
-
-// ── Trades API ────────────────────────────────────────
 async function apiGet(acctId){
   const r=await fetch(TRADES_API+'?account_id=eq.'+encodeURIComponent(acctKey(acctId))+'&order=created_at.desc&limit=500',{headers:HDR});
-  if(!r.ok)throw new Error(await r.text());
-  return r.json();
+  if(!r.ok)throw new Error(await r.text());return r.json();
 }
 async function apiPost(obj){
   const r=await fetch(TRADES_API,{method:'POST',headers:HDR,body:JSON.stringify(obj)});
-  if(!r.ok)throw new Error(await r.text());
-  return r.json();
+  if(!r.ok)throw new Error(await r.text());return r.json();
 }
 async function apiDel(id){
   const r=await fetch(TRADES_API+'?id=eq.'+id,{method:'DELETE',headers:HDR});
   if(!r.ok)throw new Error(await r.text());
 }
 
-// ── Login ─────────────────────────────────────────────
 async function doLogin(){
   const val=document.getElementById('login-input').value.trim().toLowerCase();
   if(!val){showToast('請輸入用戶名');return}
   if(!/^[a-z0-9_]{2,20}$/.test(val)){showToast('用戶名只能用英文、數字、底線，2-20字');return}
-  userId=val;
-  localStorage.setItem(UID_KEY,userId);
+  userId=val;localStorage.setItem(UID_KEY,userId);
   document.getElementById('login-input').disabled=true;
   document.querySelector('.login-btn').textContent='載入中…';
   try{
     await loadSettings();
-    // restore last used account
     const lastAcct=localStorage.getItem(CUR_ACCT_KEY+'_'+userId);
     curAcctId=lastAcct&&userSettings.accounts.find(a=>a.id===lastAcct)?lastAcct:userSettings.accounts[0].id;
-    await loadTrades();
-    showMainApp();
-  }catch(e){
-    showToast('連線失敗：'+e.message);
-    document.getElementById('login-input').disabled=false;
-    document.querySelector('.login-btn').textContent='進入 →';
-  }
+    await loadTrades();showMainApp();
+  }catch(e){showToast('連線失敗：'+e.message);document.getElementById('login-input').disabled=false;document.querySelector('.login-btn').textContent='進入 →';}
 }
 function showMainApp(){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-home').classList.add('active');
-  curTab='home';
-  updateAcctUI();
-  renderHome();
+  curTab='home';updateAcctUI();renderHome();
 }
 function doLogout(){
-  localStorage.removeItem(UID_KEY);
-  userId='';trades=[];userSettings={accounts:[],capital:{}};curAcctId='';
+  localStorage.removeItem(UID_KEY);userId='';trades=[];userSettings={accounts:[],capital:{}};curAcctId='';
   document.getElementById('modal-bg').classList.remove('open');
   document.getElementById('login-input').value='';
   document.getElementById('login-input').disabled=false;
@@ -507,51 +478,35 @@ function doLogout(){
   document.getElementById('s-login').classList.add('active');
 }
 
-// ── Navigation ────────────────────────────────────────
 function go(tab){
   curTab=tab;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+tab).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('[onclick="go(\''+tab+'\')"]').forEach(b=>b.classList.add('active'));
-  if(tab==='home')renderHome();
-  if(tab==='log')renderLog();
-  if(tab==='stats')renderStats();
-  if(tab==='add')resetForm();
+  if(tab==='home')renderHome();if(tab==='log')renderLog();if(tab==='stats')renderStats();if(tab==='add')resetForm();
 }
 function updateAcctUI(){
-  const cur=userSettings.accounts.find(a=>a.id===curAcctId)||userSettings.accounts[0];
-  if(!cur)return;
+  const cur=userSettings.accounts.find(a=>a.id===curAcctId)||userSettings.accounts[0];if(!cur)return;
   ['home','log'].forEach(id=>{
-    const dot=document.getElementById('acct-dot-'+id);
-    const nm=document.getElementById('acct-name-'+id);
-    if(dot){dot.style.background=cur.color;dot.style.boxShadow='0 0 8px '+cur.color+'80'}
-    if(nm)nm.textContent=cur.name;
+    const dot=document.getElementById('acct-dot-'+id);const nm=document.getElementById('acct-name-'+id);
+    if(dot){dot.style.background=cur.color;dot.style.boxShadow='0 0 8px '+cur.color+'80'}if(nm)nm.textContent=cur.name;
   });
-  const ub=document.getElementById('user-badge');
-  if(ub)ub.textContent='@'+userId;
+  const ub=document.getElementById('user-badge');if(ub)ub.textContent='@'+userId;
 }
 async function loadTrades(){
   updateAcctUI();
-  try{
-    trades=await apiGet(curAcctId);
-  }catch(e){
-    showToast('載入失敗：'+e.message);
-  }
+  try{trades=await apiGet(curAcctId);}catch(e){showToast('載入失敗：'+e.message);}
 }
 
-// ── Home ──────────────────────────────────────────────
 function renderHome(){
   updateAcctUI();
   document.getElementById('h-date').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
   const cap=userSettings.capital[curAcctId]||0;
   const totalPnl=trades.reduce((a,t)=>a+Number(t.pnl),0);
-  const wins=trades.filter(t=>Number(t.pnl)>0);
-  const losses=trades.filter(t=>Number(t.pnl)<0);
+  const wins=trades.filter(t=>Number(t.pnl)>0);const losses=trades.filter(t=>Number(t.pnl)<0);
   const wr=trades.length?(wins.length/trades.length*100).toFixed(1):0;
-  const pct=cap?(totalPnl/cap*100).toFixed(2):null;
-  const pc=totalPnl>=0?'var(--green)':'var(--red)';
-
+  const pct=cap?(totalPnl/cap*100).toFixed(2):null;const pc=totalPnl>=0?'var(--green)':'var(--red)';
   document.getElementById('h-content').innerHTML=`
     <div class="pnl-hero">
       <div class="pnl-hero-val" style="color:${pc}">${fmt(totalPnl)}</div>
@@ -559,10 +514,7 @@ function renderHome(){
       ${pct!==null?`<div class="pnl-hero-sub"><span style="font-size:13px;font-weight:700;color:${Number(pct)>=0?'var(--green)':'var(--red)'}">${Number(pct)>=0?'▲':'▼'} ${Math.abs(pct)}%</span><span style="font-size:11px;color:var(--muted2)">相對本金</span></div>`:''}
     </div>
     <div class="capital-bar">
-      <div class="capital-top">
-        <div class="capital-label">帳戶資金</div>
-        <div class="capital-edit" onclick="toggleCap()">✎ 設定本金</div>
-      </div>
+      <div class="capital-top"><div class="capital-label">帳戶資金</div><div class="capital-edit" onclick="toggleCap()">✎ 設定本金</div></div>
       <div class="capital-nums">
         <div><div class="ci-lbl">本金</div><div class="ci-val">${cap?cap.toFixed(2):'—'}</div></div>
         <div><div class="ci-lbl">總損益</div><div class="ci-val" style="color:${pc}">${fmt(totalPnl)}</div></div>
@@ -574,44 +526,42 @@ function renderHome(){
       </div>
     </div>
     <div class="stat-grid">
-      <div class="stat-card ${wins.length>=losses.length?'g-card':'r-card'}">
-        <div class="stat-lbl">勝率</div>
-        <div class="stat-val ${wins.length>=losses.length?'cg':'cr'}">${wr}%</div>
-        <div class="stat-sub">${wins.length}勝 ${losses.length}負</div>
-      </div>
-      <div class="stat-card gold-card">
-        <div class="stat-lbl">總筆數</div>
-        <div class="stat-val cgold">${trades.length}</div>
-        <div class="stat-sub">筆交易記錄</div>
+      <div class="stat-card ${wins.length>=losses.length?'g-card':'r-card'}"><div class="stat-lbl">勝率</div><div class="stat-val ${wins.length>=losses.length?'cg':'cr'}">${wr}%</div><div class="stat-sub">${wins.length}勝 ${losses.length}負</div></div>
+      <div class="stat-card gold-card"><div class="stat-lbl">總筆數</div><div class="stat-val cgold">${trades.length}</div><div class="stat-sub">筆交易記錄</div></div>
+    </div>
+    <div class="section-title">分析工具</div>
+    <div class="tools-section">
+      <div class="tools-row">
+        <a href="vp-mp-analyzer.html" class="tool-card tc-vpa">
+          <div class="tool-icon">📊</div>
+          <div class="tool-text">
+            <div class="tool-name">VP + MP 分析器</div>
+            <div class="tool-sub">多框架 · 自動推算 · AI提示詞</div>
+          </div>
+          <div class="tool-arr">›</div>
+        </a>
+        <a href="vp-dashboard.html" class="tool-card tc-vpd">
+          <div class="tool-icon">📈</div>
+          <div class="tool-text">
+            <div class="tool-name">VP 統計儀表板</div>
+            <div class="tool-sub">BTC · XAU · AI深度分析</div>
+          </div>
+          <div class="tool-arr">›</div>
+        </a>
       </div>
     </div>
-    <a href="vp-mp-analyzer.html" class="vp-link">
-      <div class="vp-link-icon">📊</div>
-      <div>
-        <div class="vp-link-text">VP + MP 走势分析器</div>
-        <div class="vp-link-sub">多框架分析 · 自动推算入场 · AI提示词</div>
-      </div>
-      <div class="vp-link-arr">›</div>
-    </a>
     <div class="section-title">最近交易</div>
     ${trades.slice(0,5).map(t=>tradeCard(t)).join('')||'<div class="empty"><div class="empty-icon">📡</div><p>還沒有交易記錄<br>點下方 ⊕ 新增第一筆</p></div>'}`;
 }
 
 function toggleCap(){document.getElementById('cap-editor').classList.toggle('show')}
 async function saveCap(){
-  const v=parseFloat(document.getElementById('cap-input').value);
-  if(!v||isNaN(v)){showToast('請填寫有效本金');return}
-  if(!userSettings.capital)userSettings.capital={};
-  userSettings.capital[curAcctId]=v;
-  try{
-    await upsertSettings();
-    document.getElementById('cap-editor').classList.remove('show');
-    showToast('✓ 本金已同步');
-    renderHome();
-  }catch(e){showToast('儲存失敗：'+e.message)}
+  const v=parseFloat(document.getElementById('cap-input').value);if(!v||isNaN(v)){showToast('請填寫有效本金');return}
+  if(!userSettings.capital)userSettings.capital={};userSettings.capital[curAcctId]=v;
+  try{await upsertSettings();document.getElementById('cap-editor').classList.remove('show');showToast('✓ 本金已同步');renderHome();}
+  catch(e){showToast('儲存失敗：'+e.message)}
 }
 
-// ── Log ───────────────────────────────────────────────
 function renderLog(){
   document.getElementById('l-count').textContent='共 '+trades.length+' 筆';
   document.getElementById('l-content').innerHTML=trades.map(t=>tradeCard(t)).join('')||'<div class="empty"><div class="empty-icon">📋</div><p>還沒有記錄</p></div>';
@@ -620,37 +570,22 @@ function tradeCard(t){
   const pos=Number(t.pnl)>=0;
   return`<div class="trade-item ${t.direction==='BUY'?'buy-item':'sell-item'}" onclick="openDetail(${t.id})">
     <div class="trade-badge ${t.direction==='BUY'?'badge-buy':'badge-sell'}">${t.direction}</div>
-    <div class="trade-info">
-      <div class="trade-name">${t.symbol||'—'}</div>
-      <div class="trade-meta">${t.session||''}${t.trade_time?' '+t.trade_time:''} · ${t.exit_reason||''}</div>
-    </div>
-    <div class="trade-right">
-      <div class="trade-pnl ${pos?'pnl-pos':'pnl-neg'}">${fmt(t.pnl)}</div>
-      <div class="trade-date">${fmtDate(t.date)}</div>
-    </div>
+    <div class="trade-info"><div class="trade-name">${t.symbol||'—'}</div><div class="trade-meta">${t.session||''}${t.trade_time?' '+t.trade_time:''} · ${t.exit_reason||''}</div></div>
+    <div class="trade-right"><div class="trade-pnl ${pos?'pnl-pos':'pnl-neg'}">${fmt(t.pnl)}</div><div class="trade-date">${fmtDate(t.date)}</div></div>
   </div>`;
 }
 
-// ── Detail ────────────────────────────────────────────
 function openDetail(id){
   const t=trades.find(x=>x.id===id);if(!t)return;
   document.getElementById('d-title').textContent=(t.symbol||'—')+' · '+t.direction;
   document.getElementById('d-sub').textContent=fmtDate(t.date)+(t.trade_time?' '+t.trade_time:'')+(t.session?' · '+t.session:'');
-  const pos=Number(t.pnl)>=0;
-  const dc=t.direction==='BUY'?'var(--green)':'var(--red)';
-  const rows=[
-    ['品種',t.symbol||'—'],['方向',`<span style="color:${dc};font-weight:800">${t.direction}</span>`],
-    ['時段',t.session||'—'],['時間',t.trade_time||'—'],
-    ['開倉價',t.entry_price||'—'],['止盈 TP',t.tp||'—'],
-    ['止損 SL',t.sl||'—'],['出場價',t.exit_price||'—'],
-    ['倉位',(t.lot||0)+' 手'],['出場理由',t.exit_reason||'—'],
-  ];
+  const pos=Number(t.pnl)>=0;const dc=t.direction==='BUY'?'var(--green)':'var(--red)';
+  const rows=[['品種',t.symbol||'—'],['方向',`<span style="color:${dc};font-weight:800">${t.direction}</span>`],['時段',t.session||'—'],['時間',t.trade_time||'—'],['開倉價',t.entry_price||'—'],['止盈 TP',t.tp||'—'],['止損 SL',t.sl||'—'],['出場價',t.exit_price||'—'],['倉位',(t.lot||0)+' 手'],['出場理由',t.exit_reason||'—']];
   let html='<div class="detail-grid">'+rows.map(([l,v])=>`<div class="detail-row"><div class="detail-lbl">${l}</div><div class="detail-val">${v}</div></div>`).join('')+'</div>';
   html+=`<div class="divider"></div><div class="detail-row"><div class="detail-lbl">淨利潤</div><div class="detail-val" style="font-size:24px;font-weight:900;color:${pos?'var(--green)':'var(--red)'}">${fmt(t.pnl)} USD</div></div>`;
   if(t.note)html+=`<div class="divider"></div><div class="detail-row"><div class="detail-lbl">交易心得</div><div class="detail-val" style="line-height:1.7;font-size:14px;color:var(--muted2)">${t.note}</div></div>`;
   html+=`<div class="divider"></div><button class="del-btn" onclick="delTrade(${t.id})">刪除此筆記錄</button><div style="height:20px"></div>`;
-  document.getElementById('d-body').innerHTML=html;
-  document.getElementById('detail').classList.add('open');
+  document.getElementById('d-body').innerHTML=html;document.getElementById('detail').classList.add('open');
 }
 function closeDetail(){document.getElementById('detail').classList.remove('open')}
 async function delTrade(id){
@@ -659,81 +594,39 @@ async function delTrade(id){
   catch(e){showToast('刪除失敗：'+e.message)}
 }
 
-// ── Add ───────────────────────────────────────────────
-function setDir(d){
-  selDir=d;
-  document.getElementById('btn-buy').className='dir-btn'+(d==='BUY'?' dir-buy':'');
-  document.getElementById('btn-sell').className='dir-btn'+(d==='SELL'?' dir-sell':'');
-}
-function setExit(btn,val){
-  selExit=val;isOther=false;
-  document.querySelectorAll('.exit-btn').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel');
-  document.getElementById('other-reason-box').classList.remove('show');
-}
-function setExitOther(btn){
-  selExit='其他';isOther=true;
-  document.querySelectorAll('.exit-btn').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel');
-  document.getElementById('other-reason-box').classList.add('show');
-  document.getElementById('f-other-reason').focus();
-}
+function setDir(d){selDir=d;document.getElementById('btn-buy').className='dir-btn'+(d==='BUY'?' dir-buy':'');document.getElementById('btn-sell').className='dir-btn'+(d==='SELL'?' dir-sell':'');}
+function setExit(btn,val){selExit=val;isOther=false;document.querySelectorAll('.exit-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');document.getElementById('other-reason-box').classList.remove('show');}
+function setExitOther(btn){selExit='其他';isOther=true;document.querySelectorAll('.exit-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');document.getElementById('other-reason-box').classList.add('show');document.getElementById('f-other-reason').focus();}
 function resetForm(){
-  selDir='BUY';selExit='';isOther=false;
-  const now=new Date();
+  selDir='BUY';selExit='';isOther=false;const now=new Date();
   document.getElementById('f-date').value=now.toISOString().split('T')[0];
   document.getElementById('f-time').value=now.toTimeString().slice(0,5);
-  document.getElementById('f-symbol').value='';
-  document.getElementById('f-session').value='亞盤';
+  document.getElementById('f-symbol').value='';document.getElementById('f-session').value='亞盤';
   ['f-entry','f-tp','f-sl','f-exit','f-pnl','f-other-reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
-  document.getElementById('f-lot').value='0.01';
-  document.getElementById('f-note').value='';
-  setDir('BUY');
-  document.querySelectorAll('.exit-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('f-lot').value='0.01';document.getElementById('f-note').value='';
+  setDir('BUY');document.querySelectorAll('.exit-btn').forEach(b=>b.classList.remove('sel'));
   document.getElementById('other-reason-box').classList.remove('show');
   const btn=document.getElementById('save-btn');btn.textContent='儲存交易';btn.disabled=false;
 }
 async function saveTrade(){
-  const pnlEl=document.getElementById('f-pnl').value;
-  const entryEl=document.getElementById('f-entry').value;
+  const pnlEl=document.getElementById('f-pnl').value;const entryEl=document.getElementById('f-entry').value;
   const pnl=parseFloat(pnlEl),entry=parseFloat(entryEl);
-  if(!entryEl||isNaN(entry)){showToast('請填寫開倉價');return}
-  if(!pnlEl||isNaN(pnl)){showToast('請填寫淨利潤');return}
-  if(!selExit){showToast('請選擇出場理由');return}
-  let exitReason=selExit;
-  if(isOther){const o=document.getElementById('f-other-reason').value.trim();exitReason=o?'其他：'+o:'其他'}
+  if(!entryEl||isNaN(entry)){showToast('請填寫開倉價');return}if(!pnlEl||isNaN(pnl)){showToast('請填寫淨利潤');return}if(!selExit){showToast('請選擇出場理由');return}
+  let exitReason=selExit;if(isOther){const o=document.getElementById('f-other-reason').value.trim();exitReason=o?'其他：'+o:'其他'}
   const btn=document.getElementById('save-btn');btn.textContent='儲存中…';btn.disabled=true;
-  const obj={
-    account_id:acctKey(curAcctId),
-    date:document.getElementById('f-date').value,
-    trade_time:document.getElementById('f-time').value||null,
-    symbol:document.getElementById('f-symbol').value.trim().toUpperCase()||null,
-    session:document.getElementById('f-session').value,
-    trade_type:null,direction:selDir,entry_price:entry,
-    tp:parseFloat(document.getElementById('f-tp').value)||null,
-    sl:parseFloat(document.getElementById('f-sl').value)||null,
-    exit_price:parseFloat(document.getElementById('f-exit').value)||null,
-    lot:parseFloat(document.getElementById('f-lot').value)||0.01,
-    pnl,exit_reason:exitReason,error_class:null,
-    note:document.getElementById('f-note').value.trim()||null,
-  };
-  try{
-    const saved=await apiPost(obj);trades.unshift(saved[0]);
-    showToast('✓ 已儲存到雲端');resetForm();go('log');
-  }catch(e){showToast('儲存失敗：'+e.message);btn.textContent='儲存交易';btn.disabled=false}
+  const obj={account_id:acctKey(curAcctId),date:document.getElementById('f-date').value,trade_time:document.getElementById('f-time').value||null,symbol:document.getElementById('f-symbol').value.trim().toUpperCase()||null,session:document.getElementById('f-session').value,trade_type:null,direction:selDir,entry_price:entry,tp:parseFloat(document.getElementById('f-tp').value)||null,sl:parseFloat(document.getElementById('f-sl').value)||null,exit_price:parseFloat(document.getElementById('f-exit').value)||null,lot:parseFloat(document.getElementById('f-lot').value)||0.01,pnl,exit_reason:exitReason,error_class:null,note:document.getElementById('f-note').value.trim()||null};
+  try{const saved=await apiPost(obj);trades.unshift(saved[0]);showToast('✓ 已儲存到雲端');resetForm();go('log');}
+  catch(e){showToast('儲存失敗：'+e.message);btn.textContent='儲存交易';btn.disabled=false}
 }
 
-// ── Stats ─────────────────────────────────────────────
 function renderStats(){
-  const wins=trades.filter(t=>Number(t.pnl)>0);
-  const losses=trades.filter(t=>Number(t.pnl)<0);
+  const wins=trades.filter(t=>Number(t.pnl)>0);const losses=trades.filter(t=>Number(t.pnl)<0);
   const wr=trades.length?(wins.length/trades.length*100).toFixed(1):0;
   const avgW=wins.length?wins.reduce((a,t)=>a+Number(t.pnl),0)/wins.length:0;
   const avgL=losses.length?Math.abs(losses.reduce((a,t)=>a+Number(t.pnl),0)/losses.length):0;
   const rr=(avgW&&avgL)?(avgW/avgL).toFixed(2):'—';
   const exitMap={};trades.forEach(t=>{if(t.exit_reason)exitMap[t.exit_reason]=(exitMap[t.exit_reason]||0)+1});
-  const exitArr=Object.entries(exitMap).sort((a,b)=>b[1]-a[1]);
-  const maxE=exitArr.length?exitArr[0][1]:1;
+  const exitArr=Object.entries(exitMap).sort((a,b)=>b[1]-a[1]);const maxE=exitArr.length?exitArr[0][1]:1;
   const sesMap={亞盤:[0,0],歐盤:[0,0],美盤:[0,0]};
   trades.forEach(t=>{if(sesMap[t.session]){sesMap[t.session][0]++;if(Number(t.pnl)>0)sesMap[t.session][1]++}});
   document.getElementById('st-content').innerHTML=`
@@ -760,92 +653,56 @@ function renderStats(){
   },100);
 }
 
-// ── Account modal ─────────────────────────────────────
 function openAcctModal(){
-  document.getElementById('modal-user-sub').textContent='用戶：@'+userId;
-  renderAcctList();
-  document.getElementById('modal-bg').classList.add('open');
+  document.getElementById('modal-user-sub').textContent='用戶：@'+userId;renderAcctList();document.getElementById('modal-bg').classList.add('open');
 }
 function closeAcctModal(e){
   if(e&&e.target!==document.getElementById('modal-bg'))return;
-  document.getElementById('modal-bg').classList.remove('open');
-  document.getElementById('new-acct-form').classList.remove('show');
-  document.getElementById('new-acct-input').value='';
+  document.getElementById('modal-bg').classList.remove('open');document.getElementById('new-acct-form').classList.remove('show');document.getElementById('new-acct-input').value='';
 }
 function renderAcctList(){
   document.getElementById('acct-list').innerHTML=userSettings.accounts.map(a=>`
     <div class="acct-list-item ${a.id===curAcctId?'active-acct':''}" onclick="switchAcct('${a.id}')">
       <div class="ali-dot" style="background:${a.color};box-shadow:0 0 8px ${a.color}60;width:10px;height:10px;border-radius:50%;flex-shrink:0"></div>
-      <div class="ali-info">
-        <div class="ali-name">${a.name}</div>
-        <div class="ali-sub">本金 ${userSettings.capital&&userSettings.capital[a.id]?userSettings.capital[a.id]+' USD':'未設定'}</div>
-      </div>
+      <div class="ali-info"><div class="ali-name">${a.name}</div><div class="ali-sub">本金 ${userSettings.capital&&userSettings.capital[a.id]?userSettings.capital[a.id]+' USD':'未設定'}</div></div>
       ${a.id===curAcctId?'<div class="ali-check">✓</div>':''}
       ${userSettings.accounts.length>1?`<div class="del-acct-btn" onclick="delAcct(event,'${a.id}')">✕</div>`:''}
     </div>`).join('');
 }
 async function switchAcct(id){
-  curAcctId=id;
-  localStorage.setItem(CUR_ACCT_KEY+'_'+userId,id);
-  document.getElementById('modal-bg').classList.remove('open');
-  trades=[];
+  curAcctId=id;localStorage.setItem(CUR_ACCT_KEY+'_'+userId,id);
+  document.getElementById('modal-bg').classList.remove('open');trades=[];
   document.getElementById('h-content').innerHTML='<div class="loading"><div class="spinner"></div>載入中…</div>';
-  await loadTrades();
-  updateAcctUI();
-  if(curTab==='home')renderHome();
-  if(curTab==='log')renderLog();
-  if(curTab==='stats')renderStats();
+  await loadTrades();updateAcctUI();
+  if(curTab==='home')renderHome();if(curTab==='log')renderLog();if(curTab==='stats')renderStats();
   showToast('已切換：'+userSettings.accounts.find(a=>a.id===id)?.name);
 }
 function showNewAcctForm(){
   document.getElementById('new-acct-form').classList.toggle('show');
-  if(document.getElementById('new-acct-form').classList.contains('show'))
-    setTimeout(()=>document.getElementById('new-acct-input').focus(),100);
+  if(document.getElementById('new-acct-form').classList.contains('show'))setTimeout(()=>document.getElementById('new-acct-input').focus(),100);
 }
 async function createAcct(){
-  const name=document.getElementById('new-acct-input').value.trim();
-  if(!name){showToast('請填寫帳號名稱');return}
+  const name=document.getElementById('new-acct-input').value.trim();if(!name){showToast('請填寫帳號名稱');return}
   if(userSettings.accounts.length>=8){showToast('最多 8 個帳號');return}
   const a={id:'acct_'+Date.now(),name,color:COLORS[userSettings.accounts.length%COLORS.length]};
   userSettings.accounts.push(a);
-  try{
-    await upsertSettings();
-    document.getElementById('new-acct-input').value='';
-    document.getElementById('new-acct-form').classList.remove('show');
-    renderAcctList();showToast('✓ 帳號「'+name+'」已建立');
-  }catch(e){userSettings.accounts.pop();showToast('建立失敗：'+e.message)}
+  try{await upsertSettings();document.getElementById('new-acct-input').value='';document.getElementById('new-acct-form').classList.remove('show');renderAcctList();showToast('✓ 帳號「'+name+'」已建立');}
+  catch(e){userSettings.accounts.pop();showToast('建立失敗：'+e.message)}
 }
 async function delAcct(e,id){
-  e.stopPropagation();
-  if(!confirm('確定刪除此帳號？（雲端交易記錄不會刪除）'))return;
+  e.stopPropagation();if(!confirm('確定刪除此帳號？（雲端交易記錄不會刪除）'))return;
   userSettings.accounts=userSettings.accounts.filter(a=>a.id!==id);
-  try{
-    await upsertSettings();
-    if(curAcctId===id){curAcctId=userSettings.accounts[0].id;await loadTrades();updateAcctUI()}
-    renderAcctList();
-  }catch(e){showToast('刪除失敗：'+e.message)}
+  try{await upsertSettings();if(curAcctId===id){curAcctId=userSettings.accounts[0].id;await loadTrades();updateAcctUI()}renderAcctList();}
+  catch(e){showToast('刪除失敗：'+e.message)}
 }
 
-// ── Init ──────────────────────────────────────────────
-const s=document.createElement('script');
-s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
-s.onload=()=>{if(curTab==='stats')renderStats()};
-document.head.appendChild(s);
+const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';s.onload=()=>{if(curTab==='stats')renderStats()};document.head.appendChild(s);
 
-// auto-login if uid saved
 const savedUid=localStorage.getItem(UID_KEY);
 if(savedUid){
-  document.getElementById('login-input').value=savedUid;
-  userId=savedUid;
-  loadSettings().then(()=>{
-    curAcctId=(localStorage.getItem(CUR_ACCT_KEY+'_'+userId)||userSettings.accounts[0]?.id||'');
-    return loadTrades();
-  }).then(()=>{showMainApp()}).catch(e=>{
-    userId='';localStorage.removeItem(UID_KEY);
-    document.getElementById('login-input').value='';
-  });
+  document.getElementById('login-input').value=savedUid;userId=savedUid;
+  loadSettings().then(()=>{curAcctId=(localStorage.getItem(CUR_ACCT_KEY+'_'+userId)||userSettings.accounts[0]?.id||'');return loadTrades();}).then(()=>{showMainApp()}).catch(e=>{userId='';localStorage.removeItem(UID_KEY);document.getElementById('login-input').value='';});
 }
-
 document.getElementById('login-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 </script>
 </body>

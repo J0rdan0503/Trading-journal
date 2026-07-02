@@ -529,7 +529,7 @@ function renderHome(){
           <option value="USD" ${curr==='USD'?'selected':''}>USD</option>
           <option value="USC" ${curr==='USC'?'selected':''}>USC</option>
         </select>
-        <input type="number" id="cap-input" placeholder="填入本金" value="${cap||''}" step="0.01">
+        <input type="number" id="cap-input" placeholder="填入本金" value="${cap||''}" step="0.01" onfocus="this.select()">
         <button class="cap-save-btn" onclick="saveCap()">儲存</button>
       </div>
     </div>

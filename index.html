@@ -103,6 +103,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .capital-editor.show{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 .capital-editor input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;outline:none}
 .capital-editor input:focus{border-color:var(--accent)}
+.capital-editor select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--text);font-size:13px;outline:none;font-weight:700}
+.cur-badge{font-size:10px;color:var(--accent);background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15);border-radius:8px;padding:1px 6px;margin-left:5px;font-weight:700;vertical-align:middle}
 .cap-save-btn{padding:9px 16px;background:var(--accent);border:none;border-radius:8px;color:#080C14;font-size:13px;font-weight:700;cursor:pointer}
 
 /* ── TOOLS SECTION ── */
@@ -503,6 +505,8 @@ function renderHome(){
   updateAcctUI();
   document.getElementById('h-date').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
   const cap=userSettings.capital[curAcctId]||0;
+  const curAcctObj=userSettings.accounts.find(a=>a.id===curAcctId);
+  const curr=(curAcctObj&&curAcctObj.currency)||'USD';
   const totalPnl=trades.reduce((a,t)=>a+Number(t.pnl),0);
   const wins=trades.filter(t=>Number(t.pnl)>0);const losses=trades.filter(t=>Number(t.pnl)<0);
   const wr=trades.length?(wins.length/trades.length*100).toFixed(1):0;
@@ -510,17 +514,21 @@ function renderHome(){
   document.getElementById('h-content').innerHTML=`
     <div class="pnl-hero">
       <div class="pnl-hero-val" style="color:${pc}">${fmt(totalPnl)}</div>
-      <div class="pnl-hero-lbl">累計損益 USD</div>
+      <div class="pnl-hero-lbl">累計損益 <span class="cur-badge">${curr}</span></div>
       ${pct!==null?`<div class="pnl-hero-sub"><span style="font-size:13px;font-weight:700;color:${Number(pct)>=0?'var(--green)':'var(--red)'}">${Number(pct)>=0?'▲':'▼'} ${Math.abs(pct)}%</span><span style="font-size:11px;color:var(--muted2)">相對本金</span></div>`:''}
     </div>
     <div class="capital-bar">
-      <div class="capital-top"><div class="capital-label">帳戶資金</div><div class="capital-edit" onclick="toggleCap()">✎ 設定本金</div></div>
+      <div class="capital-top"><div class="capital-label">帳戶資金 · ${curr}</div><div class="capital-edit" onclick="toggleCap()">✎ 設定本金</div></div>
       <div class="capital-nums">
         <div><div class="ci-lbl">本金</div><div class="ci-val">${cap?cap.toFixed(2):'—'}</div></div>
         <div><div class="ci-lbl">總損益</div><div class="ci-val" style="color:${pc}">${fmt(totalPnl)}</div></div>
         <div><div class="ci-lbl">帳戶餘額</div><div class="ci-val">${cap?(cap+totalPnl).toFixed(2):'—'}</div></div>
       </div>
       <div class="capital-editor" id="cap-editor">
+        <select id="cap-currency">
+          <option value="USD" ${curr==='USD'?'selected':''}>USD</option>
+          <option value="USC" ${curr==='USC'?'selected':''}>USC</option>
+        </select>
         <input type="number" id="cap-input" placeholder="填入本金" value="${cap||''}" step="0.01">
         <button class="cap-save-btn" onclick="saveCap()">儲存</button>
       </div>
@@ -557,8 +565,11 @@ function renderHome(){
 function toggleCap(){document.getElementById('cap-editor').classList.toggle('show')}
 async function saveCap(){
   const v=parseFloat(document.getElementById('cap-input').value);if(!v||isNaN(v)){showToast('請填寫有效本金');return}
+  const cSel=document.getElementById('cap-currency').value;
   if(!userSettings.capital)userSettings.capital={};userSettings.capital[curAcctId]=v;
-  try{await upsertSettings();document.getElementById('cap-editor').classList.remove('show');showToast('✓ 本金已同步');renderHome();}
+  const acctObj=userSettings.accounts.find(a=>a.id===curAcctId);
+  if(acctObj)acctObj.currency=cSel;
+  try{await upsertSettings();document.getElementById('cap-editor').classList.remove('show');showToast('✓ 本金已同步 ('+cSel+')');renderHome();}
   catch(e){showToast('儲存失敗：'+e.message)}
 }
 
@@ -664,7 +675,7 @@ function renderAcctList(){
   document.getElementById('acct-list').innerHTML=userSettings.accounts.map(a=>`
     <div class="acct-list-item ${a.id===curAcctId?'active-acct':''}" onclick="switchAcct('${a.id}')">
       <div class="ali-dot" style="background:${a.color};box-shadow:0 0 8px ${a.color}60;width:10px;height:10px;border-radius:50%;flex-shrink:0"></div>
-      <div class="ali-info"><div class="ali-name">${a.name}</div><div class="ali-sub">本金 ${userSettings.capital&&userSettings.capital[a.id]?userSettings.capital[a.id]+' USD':'未設定'}</div></div>
+      <div class="ali-info"><div class="ali-name">${a.name}</div><div class="ali-sub">本金 ${userSettings.capital&&userSettings.capital[a.id]?userSettings.capital[a.id]+' '+(a.currency||'USD'):'未設定'}</div></div>
       ${a.id===curAcctId?'<div class="ali-check">✓</div>':''}
       ${userSettings.accounts.length>1?`<div class="del-acct-btn" onclick="delAcct(event,'${a.id}')">✕</div>`:''}
     </div>`).join('');

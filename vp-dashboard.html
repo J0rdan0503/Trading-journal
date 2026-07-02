@@ -3,76 +3,134 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080C14">
 <title>VP Dashboard — BTC & XAUUSD</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#242424;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#e8e8e8;--text2:#999;--text3:#555;--btc:#F7931A;--xau:#C9A84C;--bull-bg:#1a2e1a;--bull:#4caf50;--bear-bg:#2e1a1a;--bear:#ef5350;--neu-bg:#242424;--neu:#888;--r:10px;--rs:6px}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
-.topnav{display:flex;align-items:center;gap:12px;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-.topnav h1{font-size:15px;font-weight:600;margin-right:auto}
-.sym-btn{padding:6px 16px;border-radius:20px;border:1px solid var(--border2);cursor:pointer;font-size:13px;font-weight:500;background:transparent;color:var(--text2);transition:all .15s}
-.sym-btn.ab{background:var(--btc);color:#fff;border-color:var(--btc)}
-.sym-btn.ax{background:var(--xau);color:#fff;border-color:var(--xau)}
-.ss{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--text3);white-space:nowrap}
-.ss.ok{color:var(--bull);border-color:var(--bull)}.ss.err{color:var(--bear);border-color:var(--bear)}.ss.syn{color:var(--btc);border-color:var(--btc)}
-.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto;background:var(--bg2)}
-.tab{padding:10px 16px;font-size:13px;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color .15s}
-.tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#080C14;--bg2:#0D1420;--bg3:#121A2A;--bg4:#192235;
+  --accent:#00E5FF;--accent2:#7B61FF;--green:#00E676;--red:#FF3D57;--gold:#FFD700;
+  --text:#E2EAF8;--muted:#4A6080;--muted2:#6B85A8;
+  --border:rgba(0,229,255,0.08);--border2:rgba(255,255,255,0.06);
+  --btc:#F7931A;--xau:#C9A84C;
+}
+html,body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;min-height:100vh}
+body{background-image:linear-gradient(rgba(0,229,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.02) 1px,transparent 1px);background-size:40px 40px}
+
+/* NAV */
+.topbar{background:linear-gradient(180deg,rgba(13,20,32,0.98),rgba(8,12,20,0.95));padding:18px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(20px)}
+.topbar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:1100px;margin:0 auto}
+.brand{font-size:18px;font-weight:800;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-right:6px;white-space:nowrap}
+.nav-link{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted2);font-size:12px;text-decoration:none;font-weight:600;transition:all .15s;white-space:nowrap}
+.nav-link:hover{border-color:var(--accent);color:var(--accent)}
+.nav-link.cur{background:rgba(0,229,255,0.1);border-color:rgba(0,229,255,0.3);color:var(--accent)}
+.spacer{flex:1}
+.sym-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border2);cursor:pointer;font-size:12px;font-weight:700;background:var(--bg3);color:var(--muted2);transition:all .15s}
+.sym-btn.ab{background:var(--btc);color:#fff;border-color:var(--btc);box-shadow:0 0 12px rgba(247,147,26,0.3)}
+.sym-btn.ax{background:var(--xau);color:#fff;border-color:var(--xau);box-shadow:0 0 12px rgba(201,168,76,0.3)}
+.ss{font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);color:var(--muted);white-space:nowrap;font-weight:600}
+.ss.ok{color:var(--green);border-color:rgba(0,230,118,0.3)}
+.ss.err{color:var(--red);border-color:rgba(255,61,87,0.3)}
+.ss.syn{color:var(--accent);border-color:rgba(0,229,255,0.3)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto;background:var(--bg2);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs-inner{display:flex;max-width:1100px;margin:0 auto;width:100%}
+.tab{padding:12px 16px;font-size:13px;color:var(--muted2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-weight:600;transition:color .15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .tab:hover:not(.active){color:var(--text)}
-.content{padding:24px;max-width:1100px;margin:0 auto}
+
+/* CONTENT */
+.content{padding:20px;max-width:1100px;margin:0 auto}
 .pane{display:none}.pane.active{display:block}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-.mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
-.mc-l{font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
-.mc-v{font-size:20px;font-weight:600}
-.mc-s{font-size:11px;color:var(--text2);margin-top:4px}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px}
-.ct{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em}
+
+/* GRID & CARDS */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.mc{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border2);border-radius:14px;padding:16px;text-align:center;position:relative;overflow:hidden}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.mc-l{font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.mc-v{font-size:19px;font-weight:800;color:var(--text)}
+.mc-s{font-size:11px;color:var(--muted2);margin-top:4px;font-weight:600}
+.card{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border2);border-radius:16px;padding:18px;margin-bottom:14px}
+.ct{font-size:11px;font-weight:700;color:var(--muted2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em}
+
+/* TABLE */
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:400;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
-.tbl td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);font-variant-numeric:tabular-nums}
+.tbl th{text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border2);font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--border2);color:var(--text);font-variant-numeric:tabular-nums}
 .tbl tr:last-child td{border-bottom:none}
-.tbl tr:hover td{background:var(--bg3)}
-.empty{color:var(--text3);text-align:center;padding:2rem!important}
-.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
-.bb{background:var(--bull-bg);color:var(--bull)}.br{background:var(--bear-bg);color:var(--bear)}.bn{background:var(--neu-bg);color:var(--neu);border:1px solid var(--border)}
+.tbl tr:hover td{background:var(--bg4)}
+.empty{color:var(--muted);text-align:center;padding:2rem!important;font-size:13px}
+
+/* BADGES */
+.badge{display:inline-block;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700}
+.b-bull{background:rgba(0,230,118,0.12);color:var(--green)}
+.b-bear{background:rgba(255,61,87,0.12);color:var(--red)}
+.b-neu{background:var(--bg4);color:var(--muted2);border:1px solid var(--border2)}
+
+/* FORM */
 .fr{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
-.fc{display:flex;flex-direction:column;gap:4px;flex:1;min-width:88px}
-.fc label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
-.fc input,.fc select{padding:8px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg3);color:var(--text);width:100%;outline:none;transition:border-color .15s}
-.fc input:focus{border-color:var(--text2)}
-.btn{padding:8px 16px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rs);cursor:pointer;color:var(--text);background:var(--bg3);transition:all .15s;white-space:nowrap}
-.btn:hover{background:var(--bg2);border-color:var(--text2)}
-.btn-p{background:var(--text);color:var(--bg);border-color:var(--text)}.btn-p:hover{opacity:.85}
-.btn-d{color:var(--bear);border-color:var(--bear-bg)}.btn-d:hover{background:var(--bear-bg)}
-.btn-s{padding:5px 10px;font-size:11px}
-.aip{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:18px;min-height:120px;margin-bottom:14px}
-.ait{font-size:13px;line-height:1.8;white-space:pre-wrap}
-.aih{font-size:13px;color:var(--text3);font-style:italic}
+.fc{display:flex;flex-direction:column;gap:4px;flex:1;min-width:100px}
+.fc label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.fc input{padding:9px 11px;font-size:13px;border:1px solid var(--border2);border-radius:10px;background:var(--bg);color:var(--text);width:100%;outline:none;transition:border-color .15s;font-family:inherit}
+.fc input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,0.08)}
+.btn{padding:9px 16px;font-size:12px;border:1px solid var(--border2);border-radius:10px;cursor:pointer;color:var(--text);background:var(--bg3);transition:all .15s;white-space:nowrap;font-weight:600;font-family:inherit}
+.btn:hover{background:var(--bg4);border-color:var(--accent)}
+.btn-p{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#080C14;border-color:transparent;font-weight:800}
+.btn-p:hover{opacity:.88}
+.btn-d{color:var(--red);border-color:rgba(255,61,87,0.2)}
+.btn-d:hover{background:rgba(255,61,87,0.1)}
+.btn-s{padding:6px 12px;font-size:11px}
+
+/* AI PANEL */
+.aip{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border2);border-radius:16px;padding:18px;min-height:120px;margin-bottom:14px}
+.ait{font-size:13px;line-height:1.8;white-space:pre-wrap;color:var(--text)}
+.aih{font-size:13px;color:var(--muted);font-style:italic}
 .mbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.mb{padding:6px 12px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--text2);transition:all .15s}
-.mb.act{background:var(--text);color:var(--bg);border-color:var(--text)}
+.mb{padding:7px 13px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--muted2);transition:all .15s;font-weight:600;font-family:inherit}
+.mb.act{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#080C14;border-color:transparent;font-weight:800}
 .ar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+
+/* CHART */
 .cw{position:relative;width:100%;height:200px;margin-bottom:16px}
-.si{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg3);border-radius:var(--rs);font-size:12px;margin-bottom:6px;color:var(--text2)}
-.iobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
-.iobar span{font-size:12px;color:var(--text3);margin-right:4px}
-.ibox{padding:10px 14px;background:rgba(247,147,26,.08);border:1px solid rgba(247,147,26,.2);border-radius:var(--rs);font-size:12px;color:var(--text2);margin-bottom:16px}
-.dvd{border:none;border-top:1px solid var(--border);margin:20px 0}
-@media(max-width:600px){.g4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.content{padding:14px}}
+
+/* SNAPSHOT */
+.si{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg4);border-radius:10px;font-size:12px;margin-bottom:6px;color:var(--muted2)}
+
+/* IO BAR */
+.iobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border2);border-radius:14px}
+.iobar span{font-size:12px;color:var(--muted);margin-right:4px;font-weight:600}
+
+.ibox{padding:11px 15px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);border-radius:10px;font-size:12px;color:var(--muted2);margin-bottom:16px}
+.dvd{border:none;border-top:1px solid var(--border2);margin:20px 0}
+
+@media(max-width:640px){
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .g2{grid-template-columns:1fr}
+  .content{padding:14px}
+  .topbar{padding:14px}
+}
 </style>
 </head>
 <body>
-<nav class="topnav">
-  <h1>📊 VP Dashboard</h1>
-  <button class="sym-btn ab" id="btn-btc" onclick="switchSymbol('BTC')">₿ BTC/USDT</button>
-  <button class="sym-btn" id="btn-xau" onclick="switchSymbol('XAU')">◈ XAUUSD</button>
-  <span class="ss" id="ss">連線中...</span>
-</nav>
-<div class="tabs">
+
+<div class="topbar">
+  <div class="topbar-row">
+    <span class="brand">📈 VP Dashboard</span>
+    <a href="index.html" class="nav-link">🏠 TradeLog</a>
+    <a href="vp-mp-analyzer.html" class="nav-link">📊 VP+MP 分析器</a>
+    <div class="spacer"></div>
+    <button class="sym-btn ab" id="btn-btc" onclick="switchSymbol('BTC')">₿ BTC/USDT</button>
+    <button class="sym-btn" id="btn-xau" onclick="switchSymbol('XAU')">◈ XAUUSD</button>
+    <span class="ss" id="ss">連線中...</span>
+  </div>
+</div>
+
+<div class="tabs"><div class="tabs-inner">
   <button class="tab active" onclick="switchTab('overview',event)">總覽</button>
   <button class="tab" onclick="switchTab('yearly',event)">年度</button>
   <button class="tab" onclick="switchTab('monthly',event)">每月</button>
@@ -80,7 +138,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <button class="tab" onclick="switchTab('daily',event)">每日</button>
   <button class="tab" onclick="switchTab('input',event)">輸入數據</button>
   <button class="tab" onclick="switchTab('ai',event)">AI 分析</button>
-</div>
+</div></div>
+
 <div class="content">
 
 <!-- OVERVIEW -->
@@ -93,38 +152,49 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   </div>
   <div class="card">
     <div class="ct">市場結構快覽</div>
-    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th style="width:72px">框架</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA 寬度</th><th>偏向</th></tr></thead><tbody id="ov-tbody"><tr><td colspan="6" class="empty">請先在「輸入數據」填入數據</td></tr></tbody></table></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th style="width:72px">框架</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA 寬度</th><th>偏向</th></tr></thead>
+        <tbody id="ov-tbody"><tr><td colspan="6" class="empty">請先在「輸入數據」填入數據</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <!-- YEARLY -->
 <div id="pane-yearly" class="pane">
   <div class="g2">
-    <div class="card"><div class="ct">去年</div><table class="tbl"><thead><tr><th>欄位</th><th>數值</th></tr></thead><tbody id="ly-tbody"><tr><td colspan="2" class="empty">無數據</td></tr></tbody></table></div>
+    <div class="card">
+      <div class="ct">去年</div>
+      <table class="tbl"><thead><tr><th>欄位</th><th>數值</th></tr></thead><tbody id="ly-tbody"><tr><td colspan="2" class="empty">無數據</td></tr></tbody></table>
+    </div>
     <div class="card">
       <div class="ct">今年（即時）</div>
       <table class="tbl"><thead><tr><th>欄位</th><th>數值</th></tr></thead><tbody id="ty-tbody"><tr><td colspan="2" class="empty">無數據</td></tr></tbody></table>
       <div style="margin-top:12px"><button class="btn btn-p btn-s" onclick="saveSnapshot()">📷 記錄本週快照</button></div>
     </div>
   </div>
-  <div class="card"><div class="ct">今年 POC 週快照歷史</div><div id="snap-list"><p style="color:var(--text3);font-size:12px;text-align:center;padding:1rem">尚無快照</p></div></div>
+  <div class="card">
+    <div class="ct">今年 POC 週快照歷史</div>
+    <div id="snap-list"><p style="color:var(--muted);font-size:12px;text-align:center;padding:1rem">尚無快照</p></div>
+  </div>
 </div>
 
 <!-- MONTHLY -->
 <div id="pane-monthly" class="pane">
-  <div class="cw"><canvas id="m-chart" role="img" aria-label="每月POC趨勢"></canvas></div>
+  <div class="cw"><canvas id="m-chart"></canvas></div>
   <div class="card"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>月份</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA%</th><th>偏向</th></tr></thead><tbody id="m-tbody"><tr><td colspan="6" class="empty">無數據</td></tr></tbody></table></div></div>
 </div>
 
 <!-- WEEKLY -->
 <div id="pane-weekly" class="pane">
-  <div class="cw"><canvas id="w-chart" role="img" aria-label="每週POC趨勢"></canvas></div>
+  <div class="cw"><canvas id="w-chart"></canvas></div>
   <div class="card"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>週次</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA%</th><th>偏向</th></tr></thead><tbody id="w-tbody"><tr><td colspan="6" class="empty">無數據</td></tr></tbody></table></div></div>
 </div>
 
 <!-- DAILY -->
 <div id="pane-daily" class="pane">
-  <div class="cw"><canvas id="d-chart" role="img" aria-label="每日POC趨勢"></canvas></div>
+  <div class="cw"><canvas id="d-chart"></canvas></div>
   <div class="card"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>日期</th><th>POC</th><th>VAH</th><th>VAL</th><th>VA%</th><th>偏向</th></tr></thead><tbody id="d-tbody"><tr><td colspan="6" class="empty">無數據</td></tr></tbody></table></div></div>
 </div>
 
@@ -148,7 +218,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       <div class="fc"><label>VAL</label><input type="number" id="ly-val"></div>
       <div class="fc"><label>High</label><input type="number" id="ly-high"></div>
       <div class="fc"><label>Low</label><input type="number" id="ly-low"></div>
-      <button class="btn btn-p" onclick="saveLY()" style="align-self:flex-end">儲存</button>
+      <button class="btn btn-p" onclick="saveLY()">儲存</button>
     </div>
   </div>
 
@@ -160,7 +230,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       <div class="fc"><label>VAL</label><input type="number" id="ty-val"></div>
       <div class="fc"><label>High</label><input type="number" id="ty-high"></div>
       <div class="fc"><label>Low</label><input type="number" id="ty-low"></div>
-      <button class="btn btn-p" onclick="saveTY()" style="align-self:flex-end">儲存 + 快照</button>
+      <button class="btn btn-p" onclick="saveTY()">儲存 + 快照</button>
     </div>
   </div>
 
@@ -172,7 +242,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       <div class="fc"><label>VAL</label><input type="number" id="m-val"></div>
       <div class="fc"><label>High</label><input type="number" id="m-high"></div>
       <div class="fc"><label>Low</label><input type="number" id="m-low"></div>
-      <button class="btn btn-p" onclick="saveMo()" style="align-self:flex-end">新增</button>
+      <button class="btn btn-p" onclick="saveMo()">新增</button>
     </div>
   </div>
 
@@ -184,7 +254,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       <div class="fc"><label>VAL</label><input type="number" id="w-val"></div>
       <div class="fc"><label>High</label><input type="number" id="w-high"></div>
       <div class="fc"><label>Low</label><input type="number" id="w-low"></div>
-      <button class="btn btn-p" onclick="saveWk()" style="align-self:flex-end">新增</button>
+      <button class="btn btn-p" onclick="saveWk()">新增</button>
     </div>
   </div>
 
@@ -196,7 +266,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       <div class="fc"><label>VAL</label><input type="number" id="d-val"></div>
       <div class="fc"><label>High</label><input type="number" id="d-high"></div>
       <div class="fc"><label>Low</label><input type="number" id="d-low"></div>
-      <button class="btn btn-p" onclick="saveDy()" style="align-self:flex-end">新增</button>
+      <button class="btn btn-p" onclick="saveDy()">新增</button>
     </div>
   </div>
 </div>
@@ -232,184 +302,507 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </div>
 
 </div>
+
 <script>
-const SUPA_URL='https://ftznxhihkerxzxfptpar.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0em54aGloa2VyeHp4ZnB0cGFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDQzMDYsImV4cCI6MjA5NzA4MDMwNn0.FUCc3bULwq_r36Kn0GpIn7ixr-ivp7gycDiKd04PG_c';
-const db=supabase.createClient(SUPA_URL,SUPA_KEY);
+'use strict';
 
-const SYMS={
-  BTC:{label:'BTC/USDT',dec:0,color:'#F7931A',aiCtx:'加密貨幣市場，BTC/USDT，7天24小時交易，受宏觀情緒、鏈上數據、CME期貨、ETF資金流影響，波動劇烈，注意整數關口和歷史高低點'},
-  XAU:{label:'XAUUSD',dec:2,color:'#C9A84C',aiCtx:'現貨黃金市場，受美元指數(DXY)、美債收益率、地緣政治風險、央行購金、美聯儲政策影響，注意倫敦定盤價和紐約盤重疊時段'}
-};
-let cur='BTC',aiMode='structure',aiText='',charts={};
-let state={
-  BTC:{lastYear:null,thisYear:null,snapshots:[],monthly:[],weekly:[],daily:[]},
-  XAU:{lastYear:null,thisYear:null,snapshots:[],monthly:[],weekly:[],daily:[]}
+var SUPA_URL = 'https://ftznxhihkerxzxfptpar.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0em54aGloa2VyeHp4ZnB0cGFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDQzMDYsImV4cCI6MjA5NzA4MDMwNn0.FUCc3bULwq_r36Kn0GpIn7ixr-ivp7gycDiKd04PG_c';
+var db = null;
+try { db = supabase.createClient(SUPA_URL, SUPA_KEY); } catch (e) { console.error('Supabase init failed', e); }
+
+var SYMS = {
+  BTC: { label: 'BTC/USDT', dec: 0, color: '#F7931A', aiCtx: '加密貨幣市場，BTC/USDT，7天24小時交易，受宏觀情緒、鏈上數據、CME期貨、ETF資金流影響，波動劇烈，注意整數關口和歷史高低點' },
+  XAU: { label: 'XAUUSD',  dec: 2, color: '#C9A84C', aiCtx: '現貨黃金市場，受美元指數(DXY)、美債收益率、地緣政治風險、央行購金、美聯儲政策影響，注意倫敦定盤價和紐約盤重疊時段' }
 };
 
-const n=v=>(v!=null&&v!=='')?parseFloat(v):null;
-function fmt(v){if(v==null)return'—';return Number(v).toLocaleString(undefined,{minimumFractionDigits:SYMS[cur].dec,maximumFractionDigits:SYMS[cur].dec});}
-function bias(poc,vah,val){if(poc==null||vah==null||val==null)return'neu';const mid=(vah+val)/2,range=vah-val;if(range===0)return'neu';const r=(poc-mid)/range;return r>0.08?'bull':r<-0.08?'bear':'neu';}
-function bBadge(b){return b==='bull'?'<span class="badge bb">偏多</span>':b==='bear'?'<span class="badge br">偏空</span>':'<span class="badge bn">中性</span>';}
-function bLabel(b){return b==='bull'?'偏多':b==='bear'?'偏空':'中性';}
-function vaW(vah,val,poc){if(vah==null||val==null||poc==null||poc===0)return'—';return((vah-val)/poc*100).toFixed(2)+'%';}
-function setSS(msg,cls){const e=document.getElementById('ss');e.textContent=msg;e.className='ss'+(cls?' '+cls:'');}
-function S(){return state[cur];}
+var cur = 'BTC';
+var aiMode = 'structure';
+var aiText = '';
+var charts = {};
+var state = {
+  BTC: { lastYear: null, thisYear: null, snapshots: [], monthly: [], weekly: [], daily: [] },
+  XAU: { lastYear: null, thisYear: null, snapshots: [], monthly: [], weekly: [], daily: [] }
+};
+var curTab = 'overview';
 
-async function loadFromDB(){
-  setSS('載入中...','syn');
-  try{
-    const{data:yr}=await db.from('vp_yearly').select('*').in('symbol',['BTC','XAU']);
-    if(yr)yr.forEach(r=>{if(state[r.symbol]){state[r.symbol].lastYear=r.last_year;state[r.symbol].thisYear=r.this_year;state[r.symbol].snapshots=r.snapshots||[];}});
-    const{data:ts}=await db.from('vp_data').select('*').in('symbol',['BTC','XAU']);
-    if(ts){['BTC','XAU'].forEach(sym=>{state[sym].monthly=ts.filter(r=>r.symbol===sym&&r.frame==='monthly').map(toEntry);state[sym].weekly=ts.filter(r=>r.symbol===sym&&r.frame==='weekly').map(toEntry);state[sym].daily=ts.filter(r=>r.symbol===sym&&r.frame==='daily').map(toEntry);});}
-    setSS('已同步 ✓','ok');renderAll();
-  }catch(e){setSS('離線模式','err');}
-}
-function toEntry(r){return{label:r.label,poc:r.poc,vah:r.vah,val:r.val,high:r.high,low:r.low};}
+function n(v) { return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null; }
 
-async function upsertYearly(){
-  setSS('同步中...','syn');
-  try{
-    await db.from('vp_yearly').upsert({symbol:cur,last_year:S().lastYear,this_year:S().thisYear,snapshots:S().snapshots,updated_at:new Date().toISOString()},{onConflict:'symbol'});
-    setSS('已同步 ✓','ok');
-  }catch(e){setSS('同步失敗','err');}
-}
-async function upsertRow(frame,label,row){
-  setSS('同步中...','syn');
-  try{
-    await db.from('vp_data').upsert({symbol:cur,frame,label,poc:row.poc,vah:row.vah,val:row.val,high:row.high,low:row.low,updated_at:new Date().toISOString()},{onConflict:'symbol,frame,label'});
-    setSS('已同步 ✓','ok');
-  }catch(e){setSS('同步失敗','err');}
+function fmt(v) {
+  if (v === null || v === undefined) return '—';
+  var dec = SYMS[cur].dec;
+  return Number(v).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
-function switchSymbol(sym){
-  cur=sym;
-  document.getElementById('btn-btc').className='sym-btn'+(sym==='BTC'?' ab':'');
-  document.getElementById('btn-xau').className='sym-btn'+(sym==='XAU'?' ax':'');
-  document.getElementById('inp-hint').textContent='目前品種：'+SYMS[sym].label+' — 數據同步至 Supabase 雲端，跨裝置共享。';
-  document.getElementById('ai-hint-box').textContent='品種：'+SYMS[sym].label+' — AI 提示詞已針對'+(sym==='BTC'?'加密貨幣':'貴金屬黃金')+'市場特性優化。';
+function bias(poc, vah, val) {
+  if (poc == null || vah == null || val == null) return 'neu';
+  var mid = (vah + val) / 2, range = vah - val;
+  if (range === 0) return 'neu';
+  var r = (poc - mid) / range;
+  if (r > 0.08) return 'bull';
+  if (r < -0.08) return 'bear';
+  return 'neu';
+}
+function bBadge(b) {
+  if (b === 'bull') return '<span class="badge b-bull">偏多</span>';
+  if (b === 'bear') return '<span class="badge b-bear">偏空</span>';
+  return '<span class="badge b-neu">中性</span>';
+}
+function bLabel(b) {
+  if (b === 'bull') return '偏多';
+  if (b === 'bear') return '偏空';
+  return '中性';
+}
+function vaW(vah, val, poc) {
+  if (vah == null || val == null || poc == null || poc === 0) return '—';
+  return ((vah - val) / poc * 100).toFixed(2) + '%';
+}
+function setSS(msg, cls) {
+  var el = document.getElementById('ss');
+  el.textContent = msg;
+  el.className = 'ss' + (cls ? ' ' + cls : '');
+}
+function S() { return state[cur]; }
+
+function toEntry(r) {
+  return { label: r.label, poc: r.poc, vah: r.vah, val: r.val, high: r.high, low: r.low };
+}
+
+async function loadFromDB() {
+  if (!db) { setSS('離線模式', 'err'); return; }
+  setSS('載入中...', 'syn');
+  try {
+    var yrRes = await db.from('vp_yearly').select('*').in('symbol', ['BTC', 'XAU']);
+    var yr = yrRes.data;
+    if (yr) {
+      for (var i = 0; i < yr.length; i++) {
+        var row = yr[i];
+        if (state[row.symbol]) {
+          state[row.symbol].lastYear = row.last_year;
+          state[row.symbol].thisYear = row.this_year;
+          state[row.symbol].snapshots = row.snapshots || [];
+        }
+      }
+    }
+    var tsRes = await db.from('vp_data').select('*').in('symbol', ['BTC', 'XAU']);
+    var ts = tsRes.data;
+    if (ts) {
+      ['BTC', 'XAU'].forEach(function (sym) {
+        state[sym].monthly = ts.filter(function (r) { return r.symbol === sym && r.frame === 'monthly'; }).map(toEntry);
+        state[sym].weekly  = ts.filter(function (r) { return r.symbol === sym && r.frame === 'weekly'; }).map(toEntry);
+        state[sym].daily   = ts.filter(function (r) { return r.symbol === sym && r.frame === 'daily'; }).map(toEntry);
+      });
+    }
+    setSS('已同步 ✓', 'ok');
+    renderAll();
+  } catch (e) {
+    console.error(e);
+    setSS('離線模式', 'err');
+  }
+}
+
+async function upsertYearly() {
+  if (!db) { setSS('離線模式', 'err'); return; }
+  setSS('同步中...', 'syn');
+  try {
+    await db.from('vp_yearly').upsert({
+      symbol: cur,
+      last_year: S().lastYear,
+      this_year: S().thisYear,
+      snapshots: S().snapshots,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'symbol' });
+    setSS('已同步 ✓', 'ok');
+  } catch (e) {
+    console.error(e);
+    setSS('同步失敗', 'err');
+  }
+}
+
+async function upsertRow(frame, label, row) {
+  if (!db) { setSS('離線模式', 'err'); return; }
+  setSS('同步中...', 'syn');
+  try {
+    await db.from('vp_data').upsert({
+      symbol: cur, frame: frame, label: label,
+      poc: row.poc, vah: row.vah, val: row.val,
+      high: row.high, low: row.low,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'symbol,frame,label' });
+    setSS('已同步 ✓', 'ok');
+  } catch (e) {
+    console.error(e);
+    setSS('同步失敗', 'err');
+  }
+}
+
+function switchSymbol(sym) {
+  cur = sym;
+  document.getElementById('btn-btc').className = 'sym-btn' + (sym === 'BTC' ? ' ab' : '');
+  document.getElementById('btn-xau').className = 'sym-btn' + (sym === 'XAU' ? ' ax' : '');
+  document.getElementById('inp-hint').textContent = '目前品種：' + SYMS[sym].label + ' — 數據同步至 Supabase 雲端，跨裝置共享。';
+  document.getElementById('ai-hint-box').textContent = '品種：' + SYMS[sym].label + ' — AI 提示詞已針對' + (sym === 'BTC' ? '加密貨幣' : '貴金屬黃金') + '市場特性優化。';
   renderAll();
 }
 
-let curTab='overview';
-function switchTab(name,ev){
-  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('pane-'+name).classList.add('active');
-  ev.target.classList.add('active');
-  curTab=name;renderAll();
+function switchTab(name, ev) {
+  var panes = document.querySelectorAll('.pane');
+  for (var i = 0; i < panes.length; i++) panes[i].classList.remove('active');
+  var tabs = document.querySelectorAll('.tab');
+  for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
+  document.getElementById('pane-' + name).classList.add('active');
+  if (ev && ev.target) ev.target.classList.add('active');
+  curTab = name;
+  renderAll();
 }
 
-function renderAll(){
-  const s=S();
-  if(curTab==='overview')renderOV(s);
-  if(curTab==='yearly')renderYR(s);
-  if(curTab==='monthly')renderTS('m-chart',s.monthly,'m-tbody','monthly');
-  if(curTab==='weekly')renderTS('w-chart',s.weekly,'w-tbody','weekly');
-  if(curTab==='daily')renderTS('d-chart',s.daily,'d-tbody','daily');
+function renderAll() {
+  var s = S();
+  if (curTab === 'overview') renderOV(s);
+  if (curTab === 'yearly') renderYR(s);
+  if (curTab === 'monthly') renderTS('m-chart', s.monthly, 'm-tbody', 'monthly');
+  if (curTab === 'weekly') renderTS('w-chart', s.weekly, 'w-tbody', 'weekly');
+  if (curTab === 'daily') renderTS('d-chart', s.daily, 'd-tbody', 'daily');
 }
 
-function renderOV(s){
-  function setMC(sfx,d){document.getElementById('ov-'+sfx).textContent=d?fmt(d.poc):'—';const b=d?bias(d.poc,d.vah,d.val):'neu';document.getElementById('ov-'+sfx+'-b').textContent=bLabel(b);}
-  const sm=[...s.monthly].sort((a,b)=>a.label.localeCompare(b.label));
-  const sw=[...s.weekly].sort((a,b)=>a.label.localeCompare(b.label));
-  setMC('ly',s.lastYear);setMC('ty',s.thisYear);setMC('mo',sm.slice(-1)[0]||null);setMC('wk',sw.slice(-1)[0]||null);
-  const rows=[
-    s.lastYear?['去年',s.lastYear]:null,s.thisYear?['今年',s.thisYear]:null,
-    ...sm.slice(-4).map(d=>['月:'+d.label,d]),...sw.slice(-3).map(d=>['週:'+d.label,d]),
-    ...[...s.daily].sort((a,b)=>a.label.localeCompare(b.label)).slice(-3).map(d=>['日:'+d.label,d])
-  ].filter(Boolean);
-  const tb=document.getElementById('ov-tbody');
-  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="empty">請先在「輸入數據」填入數據</td></tr>';return;}
-  tb.innerHTML=rows.map(([l,d])=>{const b=bias(d.poc,d.vah,d.val);return`<tr><td>${l}</td><td>${fmt(d.poc)}</td><td>${fmt(d.vah)}</td><td>${fmt(d.val)}</td><td>${vaW(d.vah,d.val,d.poc)}</td><td>${bBadge(b)}</td></tr>`;}).join('');
+function sortByLabel(arr) {
+  return arr.slice().sort(function (a, b) { return a.label < b.label ? -1 : a.label > b.label ? 1 : 0; });
 }
 
-function renderYR(s){
-  function det(id,d){const el=document.getElementById(id);if(!d){el.innerHTML='<tr><td colspan="2" class="empty">無數據</td></tr>';return;}const b=bias(d.poc,d.vah,d.val);el.innerHTML=[['POC',fmt(d.poc)],['VAH',fmt(d.vah)],['VAL',fmt(d.val)],['High',fmt(d.high)],['Low',fmt(d.low)],['VA 寬度',vaW(d.vah,d.val,d.poc)],['偏向',bBadge(b)]].map(([k,v])=>`<tr><td style="color:var(--text2)">${k}</td><td>${v}</td></tr>`).join('');}
-  det('ly-tbody',s.lastYear);det('ty-tbody',s.thisYear);
-  const sl=document.getElementById('snap-list');
-  if(!s.snapshots.length){sl.innerHTML='<p style="color:var(--text3);font-size:12px;text-align:center;padding:1rem">尚無快照</p>';return;}
-  sl.innerHTML=[...s.snapshots].reverse().map(sn=>{const b=bias(sn.poc,sn.vah,sn.val);return`<div class="si"><span>${sn.date} · POC: ${fmt(sn.poc)} · VAH: ${fmt(sn.vah)} · VAL: ${fmt(sn.val)}</span>${bBadge(b)}</div>`;}).join('');
+function renderOV(s) {
+  function setMC(sfx, d) {
+    document.getElementById('ov-' + sfx).textContent = d ? fmt(d.poc) : '—';
+    var b = d ? bias(d.poc, d.vah, d.val) : 'neu';
+    document.getElementById('ov-' + sfx + '-b').textContent = bLabel(b);
+  }
+  var sm = sortByLabel(s.monthly);
+  var sw = sortByLabel(s.weekly);
+  setMC('ly', s.lastYear);
+  setMC('ty', s.thisYear);
+  setMC('mo', sm.length ? sm[sm.length - 1] : null);
+  setMC('wk', sw.length ? sw[sw.length - 1] : null);
+
+  var rows = [];
+  if (s.lastYear) rows.push(['去年', s.lastYear]);
+  if (s.thisYear) rows.push(['今年', s.thisYear]);
+  sm.slice(-4).forEach(function (d) { rows.push(['月:' + d.label, d]); });
+  sw.slice(-3).forEach(function (d) { rows.push(['週:' + d.label, d]); });
+  sortByLabel(s.daily).slice(-3).forEach(function (d) { rows.push(['日:' + d.label, d]); });
+
+  var tbody = document.getElementById('ov-tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">請先在「輸入數據」填入數據</td></tr>'; return; }
+  tbody.innerHTML = rows.map(function (row) {
+    var lbl = row[0], d = row[1];
+    var b = bias(d.poc, d.vah, d.val);
+    return '<tr><td>' + lbl + '</td><td>' + fmt(d.poc) + '</td><td>' + fmt(d.vah) + '</td><td>' + fmt(d.val) + '</td><td>' + vaW(d.vah, d.val, d.poc) + '</td><td>' + bBadge(b) + '</td></tr>';
+  }).join('');
 }
 
-function renderTS(canvasId,rawData,tbodyId,key){
-  const data=[...rawData].sort((a,b)=>a.label.localeCompare(b.label));
-  const tb=document.getElementById(tbodyId);
-  if(!data.length){if(tb)tb.innerHTML='<tr><td colspan="6" class="empty">無數據</td></tr>';return;}
-  if(tb)tb.innerHTML=data.map(d=>{const b=bias(d.poc,d.vah,d.val);return`<tr><td>${d.label}</td><td>${fmt(d.poc)}</td><td>${fmt(d.vah)}</td><td>${fmt(d.val)}</td><td>${vaW(d.vah,d.val,d.poc)}</td><td>${bBadge(b)}</td></tr>`;}).join('');
-  if(charts[key])charts[key].destroy();
-  const ctx=document.getElementById(canvasId);if(!ctx)return;
-  const c=SYMS[cur].color;
-  charts[key]=new Chart(ctx.getContext('2d'),{type:'line',data:{labels:data.map(d=>d.label),datasets:[{label:'POC',data:data.map(d=>d.poc),borderColor:c,backgroundColor:c+'18',tension:0.3,pointRadius:4,pointBackgroundColor:c,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:true,maxRotation:40,font:{size:10},color:'#555'},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{font:{size:10},color:'#555'},grid:{color:'rgba(255,255,255,0.04)'}}}}}});
+function renderYR(s) {
+  function det(id, d) {
+    var el = document.getElementById(id);
+    if (!d) { el.innerHTML = '<tr><td colspan="2" class="empty">無數據</td></tr>'; return; }
+    var b = bias(d.poc, d.vah, d.val);
+    var rows = [['POC', fmt(d.poc)], ['VAH', fmt(d.vah)], ['VAL', fmt(d.val)], ['High', fmt(d.high)], ['Low', fmt(d.low)], ['VA 寬度', vaW(d.vah, d.val, d.poc)], ['偏向', bBadge(b)]];
+    el.innerHTML = rows.map(function (r) { return '<tr><td style="color:var(--muted2)">' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
+  }
+  det('ly-tbody', s.lastYear);
+  det('ty-tbody', s.thisYear);
+  var sl = document.getElementById('snap-list');
+  if (!s.snapshots.length) { sl.innerHTML = '<p style="color:var(--muted);font-size:12px;text-align:center;padding:1rem">尚無快照</p>'; return; }
+  var snaps = s.snapshots.slice().reverse();
+  sl.innerHTML = snaps.map(function (sn) {
+    var b = bias(sn.poc, sn.vah, sn.val);
+    return '<div class="si"><span>' + sn.date + ' · POC: ' + fmt(sn.poc) + ' · VAH: ' + fmt(sn.vah) + ' · VAL: ' + fmt(sn.val) + '</span>' + bBadge(b) + '</div>';
+  }).join('');
 }
 
-async function saveLY(){S().lastYear={poc:n(document.getElementById('ly-poc').value),vah:n(document.getElementById('ly-vah').value),val:n(document.getElementById('ly-val').value),high:n(document.getElementById('ly-high').value),low:n(document.getElementById('ly-low').value),year:document.getElementById('ly-year').value};await upsertYearly();alert(SYMS[cur].label+' 去年 VP 已儲存並同步 ✓');}
-async function saveTY(){const dt=document.getElementById('ty-date').value||new Date().toISOString().slice(0,10);S().thisYear={poc:n(document.getElementById('ty-poc').value),vah:n(document.getElementById('ty-vah').value),val:n(document.getElementById('ty-val').value),high:n(document.getElementById('ty-high').value),low:n(document.getElementById('ty-low').value),date:dt};S().snapshots=S().snapshots.filter(x=>x.date!==dt);S().snapshots.push({date:dt,poc:S().thisYear.poc,vah:S().thisYear.vah,val:S().thisYear.val});await upsertYearly();alert('今年 VP 已儲存並記錄快照 ✓');}
-async function saveSnapshot(){if(!S().thisYear){alert('請先儲存今年 VP');return;}const dt=new Date().toISOString().slice(0,10);S().snapshots=S().snapshots.filter(x=>x.date!==dt);S().snapshots.push({date:dt,poc:S().thisYear.poc,vah:S().thisYear.vah,val:S().thisYear.val});await upsertYearly();renderAll();alert('週快照已記錄並同步 ✓');}
-async function saveMo(){const lbl=document.getElementById('m-month').value;if(!lbl){alert('請選月份');return;}const row={label:lbl,poc:n(document.getElementById('m-poc').value),vah:n(document.getElementById('m-vah').value),val:n(document.getElementById('m-val').value),high:n(document.getElementById('m-high').value),low:n(document.getElementById('m-low').value)};S().monthly=S().monthly.filter(r=>r.label!==lbl);S().monthly.push(row);await upsertRow('monthly',lbl,row);alert('月度 VP 已新增並同步 ✓');}
-async function saveWk(){const lbl=document.getElementById('w-date').value;if(!lbl){alert('請選週開始日');return;}const row={label:lbl,poc:n(document.getElementById('w-poc').value),vah:n(document.getElementById('w-vah').value),val:n(document.getElementById('w-val').value),high:n(document.getElementById('w-high').value),low:n(document.getElementById('w-low').value)};S().weekly=S().weekly.filter(r=>r.label!==lbl);S().weekly.push(row);await upsertRow('weekly',lbl,row);alert('週度 VP 已新增並同步 ✓');}
-async function saveDy(){const lbl=document.getElementById('d-date').value;if(!lbl){alert('請選日期');return;}const row={label:lbl,poc:n(document.getElementById('d-poc').value),vah:n(document.getElementById('d-vah').value),val:n(document.getElementById('d-val').value),high:n(document.getElementById('d-high').value),low:n(document.getElementById('d-low').value)};S().daily=S().daily.filter(r=>r.label!==lbl);S().daily.push(row);await upsertRow('daily',lbl,row);alert('日度 VP 已新增並同步 ✓');}
+function renderTS(canvasId, rawData, tbodyId, key) {
+  var data = sortByLabel(rawData);
+  var tbody = document.getElementById(tbodyId);
+  if (!data.length) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="empty">無數據</td></tr>';
+    if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+    return;
+  }
+  if (tbody) {
+    tbody.innerHTML = data.map(function (d) {
+      var b = bias(d.poc, d.vah, d.val);
+      return '<tr><td>' + d.label + '</td><td>' + fmt(d.poc) + '</td><td>' + fmt(d.vah) + '</td><td>' + fmt(d.val) + '</td><td>' + vaW(d.vah, d.val, d.poc) + '</td><td>' + bBadge(b) + '</td></tr>';
+    }).join('');
+  }
+  if (charts[key]) charts[key].destroy();
+  var ctx = document.getElementById(canvasId);
+  if (!ctx || typeof Chart === 'undefined') return;
+  var color = SYMS[cur].color;
+  charts[key] = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: data.map(function (d) { return d.label; }),
+      datasets: [{
+        label: 'POC',
+        data: data.map(function (d) { return d.poc; }),
+        borderColor: color,
+        backgroundColor: color + '18',
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: color,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: true, maxRotation: 40, font: { size: 10 }, color: '#4A6080' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { font: { size: 10 }, color: '#4A6080' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
 
-function exportData(){const blob=new Blob([JSON.stringify({[cur]:S()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vp_'+cur.toLowerCase()+'_'+new Date().toISOString().slice(0,10)+'.json';a.click();}
-function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async ev=>{try{const d=JSON.parse(ev.target.result);if(d[cur]){state[cur]=d[cur];await upsertYearly();renderAll();alert('匯入並同步成功 ✓');}else alert('JSON 中找不到 '+cur+' 的數據');}catch{alert('JSON 格式錯誤');}};r.readAsText(f);}
-async function clearSym(){if(!confirm('確定清除 '+SYMS[cur].label+' 所有數據？'))return;state[cur]={lastYear:null,thisYear:null,snapshots:[],monthly:[],weekly:[],daily:[]};await db.from('vp_yearly').delete().match({symbol:cur});await db.from('vp_data').delete().match({symbol:cur});renderAll();setSS('已清除 ✓','ok');alert('已清除並同步');}
+async function saveLY() {
+  S().lastYear = {
+    poc: n(document.getElementById('ly-poc').value),
+    vah: n(document.getElementById('ly-vah').value),
+    val: n(document.getElementById('ly-val').value),
+    high: n(document.getElementById('ly-high').value),
+    low: n(document.getElementById('ly-low').value),
+    year: document.getElementById('ly-year').value
+  };
+  await upsertYearly();
+  renderAll();
+  alert(SYMS[cur].label + ' 去年 VP 已儲存並同步 ✓');
+}
 
-function setMode(btn,mode){document.querySelectorAll('.mb').forEach(b=>b.classList.remove('act'));btn.classList.add('act');aiMode=mode;}
+async function saveTY() {
+  var dt = document.getElementById('ty-date').value || new Date().toISOString().slice(0, 10);
+  S().thisYear = {
+    poc: n(document.getElementById('ty-poc').value),
+    vah: n(document.getElementById('ty-vah').value),
+    val: n(document.getElementById('ty-val').value),
+    high: n(document.getElementById('ty-high').value),
+    low: n(document.getElementById('ty-low').value),
+    date: dt
+  };
+  S().snapshots = S().snapshots.filter(function (x) { return x.date !== dt; });
+  S().snapshots.push({ date: dt, poc: S().thisYear.poc, vah: S().thisYear.vah, val: S().thisYear.val });
+  await upsertYearly();
+  renderAll();
+  alert('今年 VP 已儲存並記錄快照 ✓');
+}
 
-function buildSummary(){
-  const s=S();const sym=SYMS[cur];
-  let txt=`品種：${sym.label}\n市場背景：${sym.aiCtx}\n\n`;
-  if(s.lastYear)txt+=`【去年VP】 POC:${fmt(s.lastYear.poc)} VAH:${fmt(s.lastYear.vah)} VAL:${fmt(s.lastYear.val)} High:${fmt(s.lastYear.high)} Low:${fmt(s.lastYear.low)}\n`;
-  if(s.thisYear)txt+=`【今年VP】 POC:${fmt(s.thisYear.poc)} VAH:${fmt(s.thisYear.vah)} VAL:${fmt(s.thisYear.val)} High:${fmt(s.thisYear.high)} Low:${fmt(s.thisYear.low)}\n`;
-  const ml=[...s.monthly].sort((a,b)=>a.label.localeCompare(b.label)).slice(-6);
-  if(ml.length){txt+=`【近${ml.length}月VP】\n`;ml.forEach(d=>txt+=`  ${d.label}: POC:${fmt(d.poc)} VAH:${fmt(d.vah)} VAL:${fmt(d.val)} VA寬:${vaW(d.vah,d.val,d.poc)}\n`);}
-  const wl=[...s.weekly].sort((a,b)=>a.label.localeCompare(b.label)).slice(-6);
-  if(wl.length){txt+=`【近${wl.length}週VP】\n`;wl.forEach(d=>txt+=`  ${d.label}: POC:${fmt(d.poc)} VAH:${fmt(d.vah)} VAL:${fmt(d.val)}\n`);}
-  const dl=[...s.daily].sort((a,b)=>a.label.localeCompare(b.label)).slice(-7);
-  if(dl.length){txt+=`【近${dl.length}日VP】\n`;dl.forEach(d=>txt+=`  ${d.label}: POC:${fmt(d.poc)} VAH:${fmt(d.vah)} VAL:${fmt(d.val)}\n`);}
+async function saveSnapshot() {
+  if (!S().thisYear) { alert('請先儲存今年 VP'); return; }
+  var dt = new Date().toISOString().slice(0, 10);
+  S().snapshots = S().snapshots.filter(function (x) { return x.date !== dt; });
+  S().snapshots.push({ date: dt, poc: S().thisYear.poc, vah: S().thisYear.vah, val: S().thisYear.val });
+  await upsertYearly();
+  renderAll();
+  alert('週快照已記錄並同步 ✓');
+}
+
+async function saveMo() {
+  var lbl = document.getElementById('m-month').value;
+  if (!lbl) { alert('請選月份'); return; }
+  var row = {
+    label: lbl,
+    poc: n(document.getElementById('m-poc').value),
+    vah: n(document.getElementById('m-vah').value),
+    val: n(document.getElementById('m-val').value),
+    high: n(document.getElementById('m-high').value),
+    low: n(document.getElementById('m-low').value)
+  };
+  S().monthly = S().monthly.filter(function (r) { return r.label !== lbl; });
+  S().monthly.push(row);
+  await upsertRow('monthly', lbl, row);
+  renderAll();
+  alert('月度 VP 已新增並同步 ✓');
+}
+
+async function saveWk() {
+  var lbl = document.getElementById('w-date').value;
+  if (!lbl) { alert('請選週開始日'); return; }
+  var row = {
+    label: lbl,
+    poc: n(document.getElementById('w-poc').value),
+    vah: n(document.getElementById('w-vah').value),
+    val: n(document.getElementById('w-val').value),
+    high: n(document.getElementById('w-high').value),
+    low: n(document.getElementById('w-low').value)
+  };
+  S().weekly = S().weekly.filter(function (r) { return r.label !== lbl; });
+  S().weekly.push(row);
+  await upsertRow('weekly', lbl, row);
+  renderAll();
+  alert('週度 VP 已新增並同步 ✓');
+}
+
+async function saveDy() {
+  var lbl = document.getElementById('d-date').value;
+  if (!lbl) { alert('請選日期'); return; }
+  var row = {
+    label: lbl,
+    poc: n(document.getElementById('d-poc').value),
+    vah: n(document.getElementById('d-vah').value),
+    val: n(document.getElementById('d-val').value),
+    high: n(document.getElementById('d-high').value),
+    low: n(document.getElementById('d-low').value)
+  };
+  S().daily = S().daily.filter(function (r) { return r.label !== lbl; });
+  S().daily.push(row);
+  await upsertRow('daily', lbl, row);
+  renderAll();
+  alert('日度 VP 已新增並同步 ✓');
+}
+
+function exportData() {
+  var payload = {};
+  payload[cur] = S();
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'vp_' + cur.toLowerCase() + '_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+}
+
+function importData(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = async function (ev) {
+    try {
+      var d = JSON.parse(ev.target.result);
+      if (d[cur]) {
+        state[cur] = d[cur];
+        await upsertYearly();
+        renderAll();
+        alert('匯入並同步成功 ✓');
+      } else {
+        alert('JSON 中找不到 ' + cur + ' 的數據');
+      }
+    } catch (err) {
+      alert('JSON 格式錯誤');
+    }
+  };
+  r.readAsText(f);
+}
+
+async function clearSym() {
+  if (!confirm('確定清除 ' + SYMS[cur].label + ' 所有數據？')) return;
+  state[cur] = { lastYear: null, thisYear: null, snapshots: [], monthly: [], weekly: [], daily: [] };
+  if (db) {
+    try {
+      await db.from('vp_yearly').delete().match({ symbol: cur });
+      await db.from('vp_data').delete().match({ symbol: cur });
+    } catch (e) { console.error(e); }
+  }
+  renderAll();
+  setSS('已清除 ✓', 'ok');
+  alert('已清除並同步');
+}
+
+function setMode(btn, mode) {
+  var mbs = document.querySelectorAll('.mb');
+  for (var i = 0; i < mbs.length; i++) mbs[i].classList.remove('act');
+  btn.classList.add('act');
+  aiMode = mode;
+}
+
+function buildSummary() {
+  var s = S();
+  var sym = SYMS[cur];
+  var txt = '品種：' + sym.label + '\n市場背景：' + sym.aiCtx + '\n\n';
+  if (s.lastYear) txt += '【去年VP】 POC:' + fmt(s.lastYear.poc) + ' VAH:' + fmt(s.lastYear.vah) + ' VAL:' + fmt(s.lastYear.val) + ' High:' + fmt(s.lastYear.high) + ' Low:' + fmt(s.lastYear.low) + '\n';
+  if (s.thisYear) txt += '【今年VP】 POC:' + fmt(s.thisYear.poc) + ' VAH:' + fmt(s.thisYear.vah) + ' VAL:' + fmt(s.thisYear.val) + ' High:' + fmt(s.thisYear.high) + ' Low:' + fmt(s.thisYear.low) + '\n';
+  var ml = sortByLabel(s.monthly).slice(-6);
+  if (ml.length) {
+    txt += '【近' + ml.length + '月VP】\n';
+    ml.forEach(function (d) { txt += '  ' + d.label + ': POC:' + fmt(d.poc) + ' VAH:' + fmt(d.vah) + ' VAL:' + fmt(d.val) + ' VA寬:' + vaW(d.vah, d.val, d.poc) + '\n'; });
+  }
+  var wl = sortByLabel(s.weekly).slice(-6);
+  if (wl.length) {
+    txt += '【近' + wl.length + '週VP】\n';
+    wl.forEach(function (d) { txt += '  ' + d.label + ': POC:' + fmt(d.poc) + ' VAH:' + fmt(d.vah) + ' VAL:' + fmt(d.val) + '\n'; });
+  }
+  var dl = sortByLabel(s.daily).slice(-7);
+  if (dl.length) {
+    txt += '【近' + dl.length + '日VP】\n';
+    dl.forEach(function (d) { txt += '  ' + d.label + ': POC:' + fmt(d.poc) + ' VAH:' + fmt(d.vah) + ' VAL:' + fmt(d.val) + '\n'; });
+  }
   return txt;
 }
 
-const PROMPTS={
-  structure:(s,c)=>`你是專業的 Volume Profile 技術分析師，專精${s}市場。請根據以下多時間框架 VP 數據分析：\n1. 目前市場狀態：平衡區間/趨勢延伸/轉換階段？\n2. POC 排列方向（年→月→週→日）傳達什麼訊息？\n3. VA 寬度變化（收縮/擴張）代表什麼？\n4. 多空力量對比\n請用繁體中文，條列清晰，每點 2-3 句。`,
-  levels:(s,c)=>`你是專業的 Volume Profile 分析師，專精${s}市場。請識別：\n1. 強支撐位（具體價格+重要程度：強/中/弱+成因）\n2. 強壓力位（同上）\n3. 最重要的 High Volume Node（POC 集中區）\n4. Low Volume Node（容易快速穿越的低成交區）\n請用繁體中文，每個位置說明清楚，數字要具體。`,
-  confluence:(s,c)=>`你是專業的 Volume Profile 分析師，專精${s}市場。請分析多框架一致性：\n1. 年/月/週/日 POC 排列方向是否一致？\n2. 整體趨勢方向評估\n3. 多框架一致性評分（0-10分）及詳細理由\n4. 主要矛盾/分歧在哪？交易者應如何應對？\n請用繁體中文，分析要有邏輯推導。`,
-  strategy:(s,c)=>`你是專業的 Volume Profile 交易策略師，專精${s}市場（${c}）。請給出具體策略：\n1. 目前方向偏多/偏空/觀望+理由\n2. 最佳進場區間（具體價格+說明）\n3. 止損位（具體價格+邏輯）\n4. 目標位 TP1/TP2（具體價格）\n5. 風險報酬比評估\n6. 失效條件（哪種情況代表判斷錯誤）\n請用繁體中文，數字必須具體。`,
-  full:(s,c)=>`你是頂級的 Volume Profile 技術分析師，專精${s}市場（${c}）。請進行全面深度分析：\n\n一、市場結構判斷（平衡/趨勢/轉換，詳細說明原因）\n二、關鍵支撐壓力位（分框架列出，附重要程度和成因）\n三、多框架一致性分析（評分0-10+詳細說明）\n四、具體操作策略（方向+進場+止損+TP1+TP2+風報比）\n五、主要風險因素（列3點）\n六、本週最重要的一件事（一句話總結當前最關鍵的價位或信號）\n\n請用繁體中文，結構清晰，分析精準，數字具體。`
+var PROMPTS = {
+  structure: function (s, c) { return '你是專業的 Volume Profile 技術分析師，專精' + s + '市場。請根據以下多時間框架 VP 數據分析：\n1. 目前市場狀態：平衡區間/趨勢延伸/轉換階段？\n2. POC 排列方向（年→月→週→日）傳達什麼訊息？\n3. VA 寬度變化（收縮/擴張）代表什麼？\n4. 多空力量對比\n請用繁體中文，條列清晰，每點 2-3 句。'; },
+  levels: function (s, c) { return '你是專業的 Volume Profile 分析師，專精' + s + '市場。請識別：\n1. 強支撐位（具體價格+重要程度：強/中/弱+成因）\n2. 強壓力位（同上）\n3. 最重要的 High Volume Node（POC 集中區）\n4. Low Volume Node（容易快速穿越的低成交區）\n請用繁體中文，每個位置說明清楚，數字要具體。'; },
+  confluence: function (s, c) { return '你是專業的 Volume Profile 分析師，專精' + s + '市場。請分析多框架一致性：\n1. 年/月/週/日 POC 排列方向是否一致？\n2. 整體趨勢方向評估\n3. 多框架一致性評分（0-10分）及詳細理由\n4. 主要矛盾/分歧在哪？交易者應如何應對？\n請用繁體中文，分析要有邏輯推導。'; },
+  strategy: function (s, c) { return '你是專業的 Volume Profile 交易策略師，專精' + s + '市場（' + c + '）。請給出具體策略：\n1. 目前方向偏多/偏空/觀望+理由\n2. 最佳進場區間（具體價格+說明）\n3. 止損位（具體價格+邏輯）\n4. 目標位 TP1/TP2（具體價格）\n5. 風險報酬比評估\n6. 失效條件（哪種情況代表判斷錯誤）\n請用繁體中文，數字必須具體。'; },
+  full: function (s, c) { return '你是頂級的 Volume Profile 技術分析師，專精' + s + '市場（' + c + '）。請進行全面深度分析：\n\n一、市場結構判斷（平衡/趨勢/轉換，詳細說明原因）\n二、關鍵支撐壓力位（分框架列出，附重要程度和成因）\n三、多框架一致性分析（評分0-10+詳細說明）\n四、具體操作策略（方向+進場+止損+TP1+TP2+風報比）\n五、主要風險因素（列3點）\n六、本週最重要的一件事（一句話總結當前最關鍵的價位或信號）\n\n請用繁體中文，結構清晰，分析精準，數字具體。'; }
 };
 
-async function callClaude(prompt){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-  const d=await r.json();return d.content?.map(c=>c.text||'').join('')||'（無回應）';
+async function callClaude(prompt) {
+  var r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+  });
+  var d = await r.json();
+  if (!d.content) return '（無回應）';
+  return d.content.map(function (c) { return c.text || ''; }).join('');
 }
 
-async function runAI(toChat){
-  const s=S();
-  if(!s.lastYear&&!s.thisYear&&!s.monthly.length&&!s.weekly.length&&!s.daily.length){alert('請先填入 VP 數據');return;}
-  const summary=buildSummary();const sym=SYMS[cur].label;const ctx=SYMS[cur].aiCtx;
-  const prompt=PROMPTS[aiMode](sym,ctx)+'\n\n---VP 數據---\n'+summary;
-  if(toChat){window.open('https://claude.ai/new?prompt='+encodeURIComponent(prompt.slice(0,500)),'_blank');return;}
-  const panel=document.getElementById('ai-panel');
-  panel.innerHTML='<p class="aih">🧠 Claude 分析中，請稍候...</p>';
-  document.getElementById('copy-btn').style.display='none';
-  try{aiText=await callClaude(prompt);panel.innerHTML='<p class="ait">'+aiText.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</p>';document.getElementById('copy-btn').style.display='inline-block';}
-  catch(e){panel.innerHTML='<p class="aih" style="color:var(--bear)">分析失敗：'+e.message+'</p>';}
+async function runAI(toChat) {
+  var s = S();
+  if (!s.lastYear && !s.thisYear && !s.monthly.length && !s.weekly.length && !s.daily.length) {
+    alert('請先填入 VP 數據');
+    return;
+  }
+  var summary = buildSummary();
+  var sym = SYMS[cur].label;
+  var ctx = SYMS[cur].aiCtx;
+  var prompt = PROMPTS[aiMode](sym, ctx) + '\n\n---VP 數據---\n' + summary;
+  if (toChat) {
+    window.open('https://claude.ai/new?q=' + encodeURIComponent(prompt), '_blank');
+    return;
+  }
+  var panel = document.getElementById('ai-panel');
+  panel.innerHTML = '<p class="aih">🧠 Claude 分析中，請稍候...</p>';
+  document.getElementById('copy-btn').style.display = 'none';
+  try {
+    aiText = await callClaude(prompt);
+    panel.innerHTML = '<p class="ait">' + aiText.replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</p>';
+    document.getElementById('copy-btn').style.display = 'inline-block';
+  } catch (e) {
+    panel.innerHTML = '<p class="aih" style="color:var(--red)">分析失敗：' + e.message + '</p>';
+  }
 }
 
-async function quickAsk(toChat){
-  const q=document.getElementById('qa').value.trim();if(!q){alert('請輸入問題');return;}
-  const summary=buildSummary();
-  const prompt=`你是 Volume Profile 分析師，專精${SYMS[cur].label}市場。\n\nVP 數據：\n${summary}\n\n用戶問題：${q}\n\n請用繁體中文，簡潔精準地回答（3-6句話，如有具體數字請給出）。`;
-  if(toChat){window.open('https://claude.ai/new?prompt='+encodeURIComponent(prompt.slice(0,500)),'_blank');return;}
-  const panel=document.getElementById('ai-panel');
-  panel.innerHTML='<p class="aih">🧠 回答中...</p>';
-  document.getElementById('copy-btn').style.display='none';
-  try{aiText=await callClaude(prompt);panel.innerHTML='<p class="ait">'+aiText.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</p>';document.getElementById('copy-btn').style.display='inline-block';}
-  catch(e){panel.innerHTML='<p class="aih" style="color:var(--bear)">失敗：'+e.message+'</p>';}
+async function quickAsk(toChat) {
+  var q = document.getElementById('qa').value.trim();
+  if (!q) { alert('請輸入問題'); return; }
+  var summary = buildSummary();
+  var prompt = '你是 Volume Profile 分析師，專精' + SYMS[cur].label + '市場。\n\nVP 數據：\n' + summary + '\n\n用戶問題：' + q + '\n\n請用繁體中文，簡潔精準地回答（3-6句話，如有具體數字請給出）。';
+  if (toChat) {
+    window.open('https://claude.ai/new?q=' + encodeURIComponent(prompt), '_blank');
+    return;
+  }
+  var panel = document.getElementById('ai-panel');
+  panel.innerHTML = '<p class="aih">🧠 回答中...</p>';
+  document.getElementById('copy-btn').style.display = 'none';
+  try {
+    aiText = await callClaude(prompt);
+    panel.innerHTML = '<p class="ait">' + aiText.replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</p>';
+    document.getElementById('copy-btn').style.display = 'inline-block';
+  } catch (e) {
+    panel.innerHTML = '<p class="aih" style="color:var(--red)">失敗：' + e.message + '</p>';
+  }
 }
 
-function copyAI(){navigator.clipboard.writeText(aiText).then(()=>alert('已複製 ✓')).catch(()=>{});}
+function copyAI() {
+  navigator.clipboard.writeText(aiText).then(function () { alert('已複製 ✓'); }).catch(function () {});
+}
 
 loadFromDB();
 </script>

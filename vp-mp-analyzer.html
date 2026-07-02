@@ -20,6 +20,10 @@ header p{font-size:11px;color:var(--muted);margin-top:2px;}
 .back-link{display:flex;align-items:center;gap:8px;background:rgba(38,166,154,.08);border:1px solid rgba(38,166,154,.2);border-radius:8px;padding:7px 12px;text-decoration:none;margin-bottom:10px;}
 .back-link span{font-size:12px;font-weight:700;color:#26a69a;}
 .back-link small{font-size:10px;color:#6b7280;margin-left:4px;}
+.nav-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.nav-row .back-link{margin-bottom:0;}
+.back-link.vpd{background:rgba(56,189,248,.08);border-color:rgba(56,189,248,.2);}
+.back-link.vpd span{color:#38bdf8;}
 .inst-hint{font-size:10px;color:var(--muted);margin-bottom:12px;padding:6px 10px;background:var(--panel);border-radius:6px;border-left:2px solid var(--gold-dim);}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
 @media(max-width:680px){.grid2{grid-template-columns:1fr;}}
@@ -203,7 +207,10 @@ select option{background:var(--panel);}
     <button onclick="doLogout()" style="font-size:11px;padding:5px 8px;background:none;border:1px solid #1e2535;border-radius:6px;color:#6b7280;cursor:pointer;">退出</button>
   </div>
 </div>
-<a href="index.html" class="back-link"><span>← 返回交易復盤</span><small>TradeLog</small></a>
+<div class="nav-row">
+  <a href="index.html" class="back-link"><span>← 返回交易復盤</span><small>TradeLog</small></a>
+  <a href="vp-dashboard.html" class="back-link vpd"><span>📈 VP 統計儀表板</span><small>BTC/XAU</small></a>
+</div>
 <div class="inst-row" id="instRow">
   <div class="inst-btn active" data-inst="GOLD">🥇 Gold</div>
   <div class="inst-btn" data-inst="BTC">₿ BTC</div>

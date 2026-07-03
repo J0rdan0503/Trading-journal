@@ -421,7 +421,7 @@ canvas{display:block;width:100%!important}
       <div class="ib-panel-title"><span class="ib-n">01</span> 本金與風險</div>
       <div class="ib-row">
         <div>
-          <label>本金 Balance (USD) <span style="color:var(--accent);font-weight:700" id="ib-auto-tag">· 自動帶入</span></label>
+          <label>帳戶餘額 Balance (USD) <span style="color:var(--accent);font-weight:700" id="ib-auto-tag">· 自動帶入</span></label>
           <input type="number" id="ib-balance" value="10000" step="100">
         </div>
         <div>
@@ -439,7 +439,7 @@ canvas{display:block;width:100%!important}
           <input type="number" id="ib-lotStep" value="0.01" step="0.01">
         </div>
       </div>
-      <div class="ib-footnote">標準手 XAUUSD 合約為 100 盎司，每手每 $1 價格變動 = $100。若你的 Vantage 帳戶合約規格不同，可調整乘數。本金欄位會在你切換帳號時自動同步該帳號本金，也可手動覆蓋。</div>
+      <div class="ib-footnote">標準手 XAUUSD 合約為 100 盎司，每手每 $1 價格變動 = $100。若你的 Vantage 帳戶合約規格不同，可調整乘數。帳戶餘額欄位會在你切換帳號時自動同步該帳號的即時餘額（本金＋累計盈虧），也可手動覆蓋做假設情境試算。</div>
     </div>
 
     <div class="ib-panel">
@@ -948,9 +948,14 @@ function ibSetDir(d){
 }
 function ibPrefillBalance(){
   const cap=userSettings.capital&&userSettings.capital[curAcctId];
+  const totalPnl=trades.reduce((a,t)=>a+(t.pnl!=null?Number(t.pnl):0),0);
   const el=document.getElementById('ib-balance');
-  if(el&&cap){el.value=cap;document.getElementById('ib-auto-tag').textContent='· 自動帶入 ('+(userSettings.accounts.find(a=>a.id===curAcctId)?.name||'')+')';}
-  else if(el)document.getElementById('ib-auto-tag').textContent='· 尚未設定本金，請在總覽頁設定';
+  if(el&&cap){
+    el.value=(cap+totalPnl).toFixed(2);
+    document.getElementById('ib-auto-tag').textContent='· 自動帶入 ('+(userSettings.accounts.find(a=>a.id===curAcctId)?.name||'')+' 餘額：本金 '+cap.toFixed(2)+' + 損益 '+(totalPnl>=0?'+':'')+totalPnl.toFixed(2)+')';
+  }else if(el){
+    document.getElementById('ib-auto-tag').textContent='· 尚未設定本金，請在總覽頁設定';
+  }
   ibCalc();
 }
 function ibCalc(){

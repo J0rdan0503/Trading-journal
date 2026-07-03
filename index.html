@@ -210,6 +210,66 @@ canvas{display:block;width:100%!important}
 .loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted2);font-size:14px;gap:10px}
 .spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* ── IB BREAKOUT CALCULATOR (scoped) ── */
+.ib-calc{
+  --ib-bg:#12141a;--ib-panel:#1a1d25;--ib-panel-2:#20242e;--ib-line:#2c313d;
+  --ib-gold:#c9a961;--ib-gold-dim:#8a7644;--ib-green:#3ecf8e;--ib-red:#e5586a;
+  --ib-text:#e9e7e0;--ib-text-dim:#8a8f9c;
+  --ib-mono:'SF Mono','JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+.ib-calc{padding-top:6px}
+.ib-eyebrow{font-family:var(--ib-mono);font-size:11px;letter-spacing:.14em;color:var(--ib-gold-dim);text-transform:uppercase}
+.ib-sub{font-size:12px;color:var(--ib-text-dim);line-height:1.5;margin:6px 0 16px}
+.ib-panel{background:var(--ib-panel);border:1px solid var(--ib-line);border-radius:14px;padding:16px;margin-bottom:14px}
+.ib-panel-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ib-gold);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ib-panel-title .ib-n{font-family:var(--ib-mono);color:var(--ib-gold-dim);font-size:10px}
+.ib-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.ib-row.ib-single{grid-template-columns:1fr}
+.ib-calc label{display:block;font-size:11px;color:var(--ib-text-dim);margin-bottom:5px}
+.ib-calc input[type=number],.ib-calc select{
+  width:100%;background:var(--ib-panel-2);border:1px solid var(--ib-line);border-radius:9px;
+  color:var(--ib-text);font-family:var(--ib-mono);font-size:15px;padding:9px 10px;outline:none;
+  transition:border-color .15s;appearance:auto;-webkit-appearance:auto;
+}
+.ib-calc input[type=number]:focus{border-color:var(--ib-gold-dim);box-shadow:none}
+.ib-calc input[readonly]{color:var(--ib-text-dim)}
+.ib-seg{display:flex;background:var(--ib-panel-2);border:1px solid var(--ib-line);border-radius:9px;overflow:hidden}
+.ib-seg button{flex:1;padding:10px;background:transparent;border:none;color:var(--ib-text-dim);font-family:var(--sans, -apple-system);font-size:13px;font-weight:600;cursor:pointer}
+.ib-seg button.active.long{background:rgba(62,207,142,.14);color:var(--ib-green)}
+.ib-seg button.active.short{background:rgba(229,88,106,.14);color:var(--ib-red)}
+.ib-bar-wrap{margin-top:6px;padding:14px 12px;background:var(--ib-panel-2);border-radius:10px;border:1px solid var(--ib-line)}
+.ib-bar{position:relative;height:170px;margin:10px 2px 4px}
+.ib-bar .ib-track{position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(255,255,255,.02);border-radius:6px}
+.ib-zone{position:absolute;left:0;right:0}
+.ib-zone.ib{background:rgba(201,169,97,.07)}
+.ib-zone.risk{background:rgba(229,88,106,.07)}
+.ib-zone.reward{background:rgba(62,207,142,.07)}
+.ib-marker{position:absolute;left:0;right:0;height:0;transform:translateY(-50%);z-index:2}
+.ib-marker .ib-line{position:absolute;left:50px;right:50px;top:0;border-top:1px dashed}
+.ib-marker.tp .ib-line{border-color:var(--ib-green)}
+.ib-marker.entry .ib-line{border-color:var(--ib-gold);border-style:solid}
+.ib-marker.sl .ib-line{border-color:var(--ib-red)}
+.ib-marker.ibline .ib-line{border-color:var(--ib-gold-dim);border-style:dotted}
+.ib-side{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--ib-mono);font-size:10px;white-space:nowrap;color:var(--ib-gold-dim)}
+.ib-side.left{left:0}
+.ib-side.right{right:0;font-weight:700;color:var(--ib-text)}
+.ib-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--ib-mono);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap;background:var(--ib-bg);border:1px solid currentColor}
+.ib-marker.entry .ib-pill{color:var(--ib-gold)}
+.ib-marker.sl .ib-pill{color:var(--ib-red)}
+.ib-marker.tp .ib-pill{color:var(--ib-green)}
+.ib-metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.ib-metric{background:var(--ib-panel-2);border:1px solid var(--ib-line);border-radius:10px;padding:11px}
+.ib-metric .k{font-size:10.5px;color:var(--ib-text-dim);margin-bottom:5px}
+.ib-metric .v{font-family:var(--ib-mono);font-size:17px;font-weight:700;color:var(--ib-text)}
+.ib-metric .v.big{font-size:22px}
+.ib-metric.accent{border-color:var(--ib-gold-dim);background:rgba(201,169,97,.08)}
+.ib-metric.accent .v{color:var(--ib-gold)}
+.ib-metric.warn .v{color:var(--ib-red)}
+.ib-metric.good .v{color:var(--ib-green)}
+.ib-divider{height:1px;background:var(--ib-line);margin:14px 0}
+.ib-footnote{font-size:10.5px;color:var(--ib-text-dim);line-height:1.6;margin-top:6px}
+.ib-lot-warning{margin-top:10px;font-size:11.5px;padding:9px 11px;border-radius:9px;background:rgba(229,88,106,.1);border:1px solid rgba(229,88,106,.3);color:var(--ib-red);display:none}
+.ib-lot-warning.show{display:block}
 </style>
 </head>
 <body>
@@ -251,7 +311,7 @@ canvas{display:block;width:100%!important}
     <button class="nav-btn" onclick="go('log')"><div class="nav-icon">≡</div>記錄</button>
     <button class="nav-btn" onclick="go('add')"><div class="nav-icon">⊕</div>新增</button>
     <button class="nav-btn" onclick="go('stats')"><div class="nav-icon">◫</div>統計</button>
-    <button class="nav-btn" onclick="go('guide')"><div class="nav-icon">↡</div>安裝</button>
+    <button class="nav-btn" onclick="go('guide')"><div class="nav-icon">⚖</div>風控</button>
   </div>
 </div>
 
@@ -273,7 +333,7 @@ canvas{display:block;width:100%!important}
     <button class="nav-btn active" onclick="go('log')"><div class="nav-icon">≡</div>記錄</button>
     <button class="nav-btn" onclick="go('add')"><div class="nav-icon">⊕</div>新增</button>
     <button class="nav-btn" onclick="go('stats')"><div class="nav-icon">◫</div>統計</button>
-    <button class="nav-btn" onclick="go('guide')"><div class="nav-icon">↡</div>安裝</button>
+    <button class="nav-btn" onclick="go('guide')"><div class="nav-icon">⚖</div>風控</button>
   </div>
 </div>
 
@@ -333,7 +393,7 @@ canvas{display:block;width:100%!important}
     <button class="nav-btn" onclick="go('log')"><div class="nav-icon">≡</div>記錄</button>
     <button class="nav-btn active" onclick="go('add')"><div class="nav-icon">⊕</div>新增</button>
     <button class="nav-btn" onclick="go('stats')"><div class="nav-icon">◫</div>統計</button>
-    <button class="nav-btn" onclick="go('guide')"><div class="nav-icon">↡</div>安裝</button>
+    <button class="nav-btn" onclick="go('guide')"><div class="nav-icon">⚖</div>風控</button>
   </div>
 </div>
 
@@ -346,30 +406,97 @@ canvas{display:block;width:100%!important}
     <button class="nav-btn" onclick="go('log')"><div class="nav-icon">≡</div>記錄</button>
     <button class="nav-btn" onclick="go('add')"><div class="nav-icon">⊕</div>新增</button>
     <button class="nav-btn active" onclick="go('stats')"><div class="nav-icon">◫</div>統計</button>
-    <button class="nav-btn" onclick="go('guide')"><div class="nav-icon">↡</div>安裝</button>
+    <button class="nav-btn" onclick="go('guide')"><div class="nav-icon">⚖</div>風控</button>
   </div>
 </div>
 
 <!-- GUIDE -->
 <div id="s-guide" class="screen">
-  <div class="topbar"><div class="topbar-row"><h1>安裝指南</h1></div></div>
-  <div class="scroll-content">
-    <div class="guide-card" style="border-color:rgba(0,229,255,0.15)">
-      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:14px">🍎 iOS / iPhone</div>
-      <div class="guide-step"><div class="step-num">1</div><div><div class="step-title">Safari 開啟此網址</div><div class="step-sub">必須用 Safari，其他瀏覽器不支援加入主畫面</div></div></div>
-      <div class="guide-step"><div class="step-num">2</div><div><div class="step-title">點底部分享按鈕</div><div class="step-sub">方框加箭頭圖示，在畫面正下方中間</div></div></div>
-      <div class="guide-step"><div class="step-num">3</div><div><div class="step-title">選「加入主畫面」</div><div class="step-sub">Add to Home Screen → 加入，桌面出現 App 圖示</div></div></div>
+  <div class="topbar"><div class="topbar-row"><h1>IB 突破風控計算機</h1></div></div>
+  <div class="scroll-content ib-calc">
+    <div class="ib-eyebrow">XAUUSD · Initial Balance Breakout</div>
+    <div class="ib-sub">本金已自動帶入目前帳號設定，輸入今日 IB 區間即可算出停損停利與可開手數。</div>
+
+    <div class="ib-panel">
+      <div class="ib-panel-title"><span class="ib-n">01</span> 本金與風險</div>
+      <div class="ib-row">
+        <div>
+          <label>本金 Balance (USD) <span style="color:var(--accent);font-weight:700" id="ib-auto-tag">· 自動帶入</span></label>
+          <input type="number" id="ib-balance" value="10000" step="100">
+        </div>
+        <div>
+          <label>風險比例 Risk %</label>
+          <input type="number" id="ib-riskPct" value="1" step="0.1">
+        </div>
+      </div>
+      <div class="ib-row">
+        <div>
+          <label>合約乘數（每手每 $1 價值 USD）</label>
+          <input type="number" id="ib-contractMult" value="100" step="1">
+        </div>
+        <div>
+          <label>最小手數步進</label>
+          <input type="number" id="ib-lotStep" value="0.01" step="0.01">
+        </div>
+      </div>
+      <div class="ib-footnote">標準手 XAUUSD 合約為 100 盎司，每手每 $1 價格變動 = $100。若你的 Vantage 帳戶合約規格不同，可調整乘數。本金欄位會在你切換帳號時自動同步該帳號本金，也可手動覆蓋。</div>
     </div>
-    <div class="guide-card" style="border-color:rgba(0,230,118,0.15)">
-      <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px">🤖 Android</div>
-      <div class="guide-step"><div class="step-num">1</div><div><div class="step-title">Chrome 開啟此網址</div><div class="step-sub">Chrome 瀏覽器支援最完整</div></div></div>
-      <div class="guide-step"><div class="step-num">2</div><div><div class="step-title">點右上角 ⋮ 選單</div></div></div>
-      <div class="guide-step"><div class="step-num">3</div><div><div class="step-title">選「加到主畫面」</div><div class="step-sub">確認後桌面出現 App 圖示</div></div></div>
+
+    <div class="ib-panel">
+      <div class="ib-panel-title"><span class="ib-n">02</span> 今日 IB 區間</div>
+      <div class="ib-row">
+        <div><label>IB High</label><input type="number" id="ib-ibHigh" value="2365.00" step="0.1"></div>
+        <div><label>IB Low</label><input type="number" id="ib-ibLow" value="2358.00" step="0.1"></div>
+      </div>
+      <div class="ib-row">
+        <div><label>流動性緩衝 Buffer</label><input type="number" id="ib-buffer" value="30" step="1"></div>
+        <div><label>Pip 定義（1 pip = ? 美元）</label><input type="number" id="ib-pipSize" value="0.1" step="0.01"></div>
+      </div>
+      <div class="ib-row">
+        <div><label>R : R 風報比</label><input type="number" id="ib-rr" value="2" step="0.1"></div>
+        <div><label>IB 區間大小（自動）</label><input type="number" id="ib-ibRange" readonly></div>
+      </div>
     </div>
-    <div class="guide-card" style="border-color:rgba(123,97,255,0.15)">
-      <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px">☁️ 同步說明</div>
-      <div style="font-size:13px;color:var(--muted2);line-height:1.7">所有裝置輸入同一個用戶名即可同步。帳號設定和本金都存在雲端，手機電腦資料完全一致。</div>
+
+    <div class="ib-panel">
+      <div class="ib-panel-title"><span class="ib-n">03</span> 突破方向</div>
+      <div class="ib-seg">
+        <button id="ib-btnLong" class="active long" onclick="ibSetDir('long')">做多 突破 IB High</button>
+        <button id="ib-btnShort" class="short" onclick="ibSetDir('short')">做空 跌破 IB Low</button>
+      </div>
+
+      <div class="ib-row ib-single" style="margin-top:12px;">
+        <div>
+          <label>實際成交價（選填 — 沒回踩、滑價時填這裡；留空＝用理論突破價）</label>
+          <input type="number" id="ib-actualEntry" placeholder="留空使用理論進場價" step="0.1">
+          <div class="ib-footnote" id="ib-entryModeNote" style="margin-top:6px;"></div>
+        </div>
+      </div>
+
+      <div class="ib-bar-wrap"><div class="ib-bar" id="ib-bar"></div></div>
+
+      <div class="ib-metrics">
+        <div class="ib-metric"><div class="k">進場 Entry</div><div class="v" id="ib-mEntry">–</div></div>
+        <div class="ib-metric warn"><div class="k">停損 SL</div><div class="v" id="ib-mSL">–</div></div>
+        <div class="ib-metric good"><div class="k">停利 TP</div><div class="v" id="ib-mTP">–</div></div>
+        <div class="ib-metric"><div class="k">SL 距離</div><div class="v" id="ib-mSLdist">–</div></div>
+      </div>
+
+      <div class="ib-divider"></div>
+
+      <div class="ib-metrics">
+        <div class="ib-metric accent"><div class="k">風險金額 Risk $</div><div class="v big" id="ib-mRiskUsd">–</div></div>
+        <div class="ib-metric accent"><div class="k">可開手數 Position Size</div><div class="v big" id="ib-mLots">–</div></div>
+      </div>
+      <div class="ib-metrics">
+        <div class="ib-metric good"><div class="k">潛在獲利 Potential Profit ($)</div><div class="v big" id="ib-mProfitUsd">–</div></div>
+        <div class="ib-metric good"><div class="k">獲利佔本金 % (Return)</div><div class="v big" id="ib-mProfitPct">–</div></div>
+      </div>
+      <div class="ib-lot-warning" id="ib-lotWarning">⚠ 依步進手數四捨五入後，實際風險金額與設定值有落差，請見下方備註。</div>
+      <div class="ib-footnote" id="ib-lotFootnote"></div>
     </div>
+
+    <div class="ib-footnote" style="text-align:center; opacity:.6;">此工具僅供風控試算，不構成交易建議。請自行確認經紀商實際合約規格與點差。</div>
     <div style="height:10px"></div>
   </div>
   <div class="navbar">
@@ -377,7 +504,7 @@ canvas{display:block;width:100%!important}
     <button class="nav-btn" onclick="go('log')"><div class="nav-icon">≡</div>記錄</button>
     <button class="nav-btn" onclick="go('add')"><div class="nav-icon">⊕</div>新增</button>
     <button class="nav-btn" onclick="go('stats')"><div class="nav-icon">◫</div>統計</button>
-    <button class="nav-btn active" onclick="go('guide')"><div class="nav-icon">↡</div>安裝</button>
+    <button class="nav-btn active" onclick="go('guide')"><div class="nav-icon">⚖</div>風控</button>
   </div>
 </div>
 
@@ -493,7 +620,7 @@ function go(tab){
   document.getElementById('s-'+tab).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('[onclick="go(\''+tab+'\')"]').forEach(b=>b.classList.add('active'));
-  if(tab==='home')renderHome();if(tab==='log')renderLog();if(tab==='stats')renderStats();if(tab==='add')resetForm();
+  if(tab==='home')renderHome();if(tab==='log')renderLog();if(tab==='stats')renderStats();if(tab==='add')resetForm();if(tab==='guide')ibPrefillBalance();
 }
 function updateAcctUI(){
   const cur=userSettings.accounts.find(a=>a.id===curAcctId)||userSettings.accounts[0];if(!cur)return;
@@ -786,7 +913,7 @@ async function switchAcct(id){
   document.getElementById('modal-bg').classList.remove('open');trades=[];
   document.getElementById('h-content').innerHTML='<div class="loading"><div class="spinner"></div>載入中…</div>';
   await loadTrades();updateAcctUI();
-  if(curTab==='home')renderHome();if(curTab==='log')renderLog();if(curTab==='stats')renderStats();
+  if(curTab==='home')renderHome();if(curTab==='log')renderLog();if(curTab==='stats')renderStats();if(curTab==='guide')ibPrefillBalance();
   showToast('已切換：'+userSettings.accounts.find(a=>a.id===id)?.name);
 }
 function showNewAcctForm(){
@@ -810,7 +937,110 @@ async function delAcct(e,id){
 
 const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';s.onload=()=>{if(curTab==='stats')renderStats()};document.head.appendChild(s);
 
-const savedUid=localStorage.getItem(UID_KEY);
+// ── IB BREAKOUT CALCULATOR ──────────────────────────────
+let ibDir='long';
+function ibFmt(n,d=2){if(!isFinite(n))return'–';return n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function ibSetDir(d){
+  ibDir=d;
+  document.getElementById('ib-btnLong').classList.toggle('active',d==='long');
+  document.getElementById('ib-btnShort').classList.toggle('active',d==='short');
+  ibCalc();
+}
+function ibPrefillBalance(){
+  const cap=userSettings.capital&&userSettings.capital[curAcctId];
+  const el=document.getElementById('ib-balance');
+  if(el&&cap){el.value=cap;document.getElementById('ib-auto-tag').textContent='· 自動帶入 ('+(userSettings.accounts.find(a=>a.id===curAcctId)?.name||'')+')';}
+  else if(el)document.getElementById('ib-auto-tag').textContent='· 尚未設定本金，請在總覽頁設定';
+  ibCalc();
+}
+function ibCalc(){
+  const balance=parseFloat(document.getElementById('ib-balance').value)||0;
+  const riskPct=parseFloat(document.getElementById('ib-riskPct').value)||0;
+  const contractMult=parseFloat(document.getElementById('ib-contractMult').value)||100;
+  const lotStep=parseFloat(document.getElementById('ib-lotStep').value)||0.01;
+  const ibHigh=parseFloat(document.getElementById('ib-ibHigh').value)||0;
+  const ibLow=parseFloat(document.getElementById('ib-ibLow').value)||0;
+  const buffer=parseFloat(document.getElementById('ib-buffer').value)||0;
+  const pipSize=parseFloat(document.getElementById('ib-pipSize').value)||0.1;
+  const rr=parseFloat(document.getElementById('ib-rr').value)||1;
+
+  const ibRange=ibHigh-ibLow;
+  document.getElementById('ib-ibRange').value=ibFmt(ibRange,2);
+  const bufferUsd=buffer*pipSize;
+
+  let entry,sl,tp,slDist;
+  if(ibDir==='long'){entry=ibHigh;sl=ibLow-bufferUsd}else{entry=ibLow;sl=ibHigh+bufferUsd}
+
+  const actualEntryInput=document.getElementById('ib-actualEntry').value;
+  const usingActualEntry=actualEntryInput!==''&&!isNaN(parseFloat(actualEntryInput));
+  if(usingActualEntry)entry=parseFloat(actualEntryInput);
+
+  if(ibDir==='long'){slDist=entry-sl;tp=entry+slDist*rr}else{slDist=sl-entry;tp=entry-slDist*rr}
+
+  const riskUsd=balance*(riskPct/100);
+  let lots=slDist>0?riskUsd/(slDist*contractMult):0;
+  const lotsRounded=lotStep>0?Math.floor(lots/lotStep)*lotStep:lots;
+  const actualRiskUsd=lotsRounded*slDist*contractMult;
+  const rewardDist=slDist*rr;
+  const profitUsd=lotsRounded*rewardDist*contractMult;
+  const profitPct=balance>0?(profitUsd/balance)*100:0;
+
+  document.getElementById('ib-mEntry').textContent=ibFmt(entry);
+  const noteEl=document.getElementById('ib-entryModeNote');
+  const theoEntry=ibDir==='long'?ibHigh:ibLow;
+  noteEl.textContent=usingActualEntry
+    ?'目前使用「實際成交價」$'+ibFmt(entry)+'（理論突破價為 $'+ibFmt(theoEntry)+'），SL 仍固定在 IB 結構位置，TP／風險已依實際入場價重新計算。'
+    :'目前使用理論突破價 $'+ibFmt(theoEntry)+'（尚未輸入實際成交價）。';
+  document.getElementById('ib-mSL').textContent=ibFmt(sl);
+  document.getElementById('ib-mTP').textContent=ibFmt(tp);
+  document.getElementById('ib-mSLdist').textContent=ibFmt(slDist)+' ('+ibFmt(slDist/pipSize,0)+' pips)';
+  document.getElementById('ib-mRiskUsd').textContent='$'+ibFmt(riskUsd);
+  document.getElementById('ib-mLots').textContent=ibFmt(lotsRounded,2)+' 手';
+  document.getElementById('ib-mProfitUsd').textContent=lotsRounded>0?'+$'+ibFmt(profitUsd):'–';
+  document.getElementById('ib-mProfitPct').textContent=lotsRounded>0?ibFmt(profitPct,2)+'%':'–';
+
+  const warnEl=document.getElementById('ib-lotWarning');
+  const footEl=document.getElementById('ib-lotFootnote');
+  if(lotsRounded>0&&Math.abs(actualRiskUsd-riskUsd)>0.5){
+    warnEl.classList.add('show');
+    footEl.textContent='四捨五入至 '+lotStep+' 手步進後，實際手數 '+ibFmt(lotsRounded,2)+' 手，實際風險金額約 $'+ibFmt(actualRiskUsd)+'（原設定 $'+ibFmt(riskUsd)+'）。';
+  }else{warnEl.classList.remove('show');footEl.textContent=''}
+  if(lots<=0||!isFinite(lots)){
+    document.getElementById('ib-mLots').textContent='–';
+    document.getElementById('ib-mProfitUsd').textContent='–';
+    document.getElementById('ib-mProfitPct').textContent='–';
+  }
+  ibDrawBar(ibHigh,ibLow,entry,sl,tp);
+}
+function ibDrawBar(ibHigh,ibLow,entry,sl,tp){
+  const el=document.getElementById('ib-bar');
+  if(!el)return;
+  el.innerHTML='';
+  const allVals=[ibHigh,ibLow,entry,sl,tp];
+  const top=Math.max(...allVals)+Math.abs(Math.max(...allVals)-Math.min(...allVals))*0.1;
+  const bottom=Math.min(...allVals)-Math.abs(Math.max(...allVals)-Math.min(...allVals))*0.1;
+  const span=top-bottom||1;
+  function yOf(v){return((top-v)/span)*100}
+  const track=document.createElement('div');track.className='ib-track';el.appendChild(track);
+  const ibZone=document.createElement('div');ibZone.className='ib-zone ib';ibZone.style.top=yOf(ibHigh)+'%';ibZone.style.height=(yOf(ibLow)-yOf(ibHigh))+'%';el.appendChild(ibZone);
+  const riskZone=document.createElement('div');riskZone.className='ib-zone risk';riskZone.style.top=Math.min(yOf(entry),yOf(sl))+'%';riskZone.style.height=Math.abs(yOf(sl)-yOf(entry))+'%';el.appendChild(riskZone);
+  const rewardZone=document.createElement('div');rewardZone.className='ib-zone reward';rewardZone.style.top=Math.min(yOf(entry),yOf(tp))+'%';rewardZone.style.height=Math.abs(yOf(tp)-yOf(entry))+'%';el.appendChild(rewardZone);
+  function addIbLine(v,label){
+    const m=document.createElement('div');m.className='ib-marker ibline';m.style.top=yOf(v)+'%';
+    m.innerHTML='<span class="ib-line"></span><span class="ib-side left">'+label+'</span><span class="ib-side right">'+ibFmt(v)+'</span>';
+    el.appendChild(m);
+  }
+  function addCenterLine(v,cls,label){
+    const m=document.createElement('div');m.className='ib-marker '+cls;m.style.top=yOf(v)+'%';
+    m.innerHTML='<span class="ib-line"></span><span class="ib-pill">'+label+' '+ibFmt(v)+'</span>';
+    el.appendChild(m);
+  }
+  addIbLine(ibHigh,'IB High');addIbLine(ibLow,'IB Low');
+  addCenterLine(tp,'tp','TP');addCenterLine(entry,'entry','Entry');addCenterLine(sl,'sl','SL');
+}
+document.querySelectorAll('.ib-calc input').forEach(inp=>inp.addEventListener('input',ibCalc));
+
+
 if(savedUid){
   document.getElementById('login-input').value=savedUid;userId=savedUid;
   loadSettings().then(()=>{curAcctId=(localStorage.getItem(CUR_ACCT_KEY+'_'+userId)||userSettings.accounts[0]?.id||'');return loadTrades();}).then(()=>{showMainApp()}).catch(e=>{userId='';localStorage.removeItem(UID_KEY);document.getElementById('login-input').value='';});

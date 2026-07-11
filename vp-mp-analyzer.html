@@ -341,6 +341,47 @@ select option{background:var(--panel);}
     <div class="field" style="margin-bottom:0"><label>今日IB低点 <span class="opt">盘中填</span></label><input type="number" id="tibl" placeholder="首小时最低" step="0.01" oninput="calcTodayIB()"></div>
   </div>
   <div class="today-ib-res" id="todayIBRes"></div>
+
+  <div class="field" style="margin-top:12px">
+    <label>开盘 IB 前两根K线 OHLC <span class="opt">自动识别开盘型态</span></label>
+    <div class="note td" style="margin-bottom:6px">按你看盘的K线周期填（如30分钟或1小时），用来判断开盘四型态</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px">K1（第1根）</div>
+    <div class="irow" style="margin-bottom:6px">
+      <div class="field"><input type="number" id="k1o" placeholder="开" step="0.01"></div>
+      <div class="field"><input type="number" id="k1h" placeholder="高" step="0.01"></div>
+    </div>
+    <div class="irow" style="margin-bottom:10px">
+      <div class="field"><input type="number" id="k1l" placeholder="低" step="0.01"></div>
+      <div class="field"><input type="number" id="k1c" placeholder="收" step="0.01"></div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px">K2（第2根）</div>
+    <div class="irow" style="margin-bottom:6px">
+      <div class="field"><input type="number" id="k2o" placeholder="开" step="0.01"></div>
+      <div class="field"><input type="number" id="k2h" placeholder="高" step="0.01"></div>
+    </div>
+    <div class="irow">
+      <div class="field"><input type="number" id="k2l" placeholder="低" step="0.01"></div>
+      <div class="field"><input type="number" id="k2c" placeholder="收" step="0.01"></div>
+    </div>
+  </div>
+  <button class="auto-btn" onclick="autoDetectOpenType()">🔍 自动识别开盘型态</button>
+  <div class="auto-res" id="openTypeRes"></div>
+  <div class="field">
+    <label>开盘型态</label>
+    <div class="shape-grid" id="openType" style="grid-template-columns:1fr 1fr">
+      <div class="sbtn" data-val="open-drive"><span class="si">🚀</span>Open-Drive<br><small style="color:var(--muted);font-size:9px">单边最强</small></div>
+      <div class="sbtn" data-val="open-test-drive"><span class="si">🔄</span>Test-Drive<br><small style="color:var(--muted);font-size:9px">假突破反转</small></div>
+      <div class="sbtn" data-val="open-rejection-reverse"><span class="si">↩️</span>Rejection<br><small style="color:var(--muted);font-size:9px">拒绝反向</small></div>
+      <div class="sbtn active" data-val="open-auction"><span class="si">⚖️</span>Auction<br><small style="color:var(--muted);font-size:9px">双向拍卖</small></div>
+    </div>
+  </div>
+  <div class="field">
+    <label>型态方向 <span class="opt">自动识别后带入，可手动覆盖</span></label>
+    <div class="shape-grid" id="openTypeDir" style="grid-template-columns:1fr 1fr">
+      <div class="sbtn" data-val="bull"><span class="si">📈</span>偏多</div>
+      <div class="sbtn" data-val="bear"><span class="si">📉</span>偏空</div>
+    </div>
+  </div>
 </div>
 
 <button class="analyze-btn" onclick="analyze()">⚡ 逻辑分析 + 自动推算入场方案</button>
@@ -421,8 +462,8 @@ function initShapeGroup(id){
     b.classList.add('active');
   }));
 }
-initShapeGroup('vpShape'); initShapeGroup('wvpShape');
-function getShape(id){return document.querySelector('#'+id+' .sbtn.active')?.dataset.val||'D';}
+initShapeGroup('vpShape'); initShapeGroup('wvpShape'); initShapeGroup('openType'); initShapeGroup('openTypeDir');
+function getShape(id,def='D'){return document.querySelector('#'+id+' .sbtn.active')?.dataset.val||def;}
 function setShape(id,v){document.querySelectorAll('#'+id+' .sbtn').forEach(b=>b.classList.toggle('active',b.dataset.val===v));}
 function gv(id){return parseFloat(document.getElementById(id).value);}
 
@@ -469,6 +510,50 @@ function autoDetect(){
   setShape('vpShape',shape); onVPInput();
   el.className='auto-res show';
   el.textContent=`✅ ${shape}形 — ${reason}${shape==='D'?' | 双分布请手动选B形':''}　|　⚠️自动识别仅供参考，请对照图表肉眼确认`;
+}
+
+const OT_LABELS={'open-drive':'Open-Drive（单边最强）','open-test-drive':'Open-Test-Drive（假突破真反转）','open-rejection-reverse':'Open-Rejection-Reverse（拒绝后反向）','open-auction':'Open-Auction（双向拍卖）'};
+
+function classifyOpenType(o1,h1,l1,c1,o2,h2,l2,c2){
+  const range1=(h1-l1)||0.0001, range2=(h2-l2)||0.0001;
+  const body1=Math.abs(c1-o1), body2=Math.abs(c2-o2);
+  const br1=body1/range1, br2=body2/range2;
+  const dir1=c1>=o1?1:-1, dir2=c2>=o2?1:-1;
+  const sameDir=dir1===dir2;
+  const totalHigh=Math.max(h1,h2), totalLow=Math.min(l1,l2);
+  const totalRange=(totalHigh-totalLow)||0.0001;
+  const netMove=c2-o1;
+  const netRatio=Math.abs(netMove)/totalRange;
+  const dir=netMove>=0?'bull':'bear';
+
+  let type,reason;
+  if(sameDir&&br1>=0.55&&br2>=0.5&&netRatio>=0.65){
+    type='open-drive';
+    reason=`两根同向(${dir1>0?'涨':'跌'})，实体占比${(br1*100).toFixed(0)}%/${(br2*100).toFixed(0)}%，净移动占总波幅${(netRatio*100).toFixed(0)}% → 几乎无回测，单边直冲`;
+  }else if(!sameDir&&br2>=0.55&&netRatio>=0.45){
+    type='open-test-drive';
+    reason=`第一根测试${dir1>0?'上':'下'}方后失败，第二根反向(${dir2>0?'涨':'跌'})强力延伸，实体占比${(br2*100).toFixed(0)}%，净移动占比${(netRatio*100).toFixed(0)}% → 假突破后真反转`;
+  }else if(br1<0.45&&!sameDir&&netRatio>=0.3){
+    type='open-rejection-reverse';
+    reason=`第一根长影线/小实体（实体占比仅${(br1*100).toFixed(0)}%）代表开盘方向被拒绝，第二根确认反向 → 拒绝后反向确立，强度中等`;
+  }else{
+    type='open-auction';
+    reason=`两根实体均不大(${(br1*100).toFixed(0)}%/${(br2*100).toFixed(0)}%)，净移动仅占总波幅${(netRatio*100).toFixed(0)}% → 围绕开盘价双向拍卖，无明确方向`;
+  }
+  return{type,reason,dir,br1,br2,netRatio};
+}
+
+function autoDetectOpenType(){
+  const o1=gv('k1o'),h1=gv('k1h'),l1=gv('k1l'),c1=gv('k1c');
+  const o2=gv('k2o'),h2=gv('k2h'),l2=gv('k2l'),c2=gv('k2c');
+  const el=document.getElementById('openTypeRes');
+  if([o1,h1,l1,c1,o2,h2,l2,c2].some(isNaN)){el.className='auto-res show';el.textContent='⚠️ 请先填写两根K线完整OHLC（开/高/低/收）';return;}
+  if(h1<l1||h2<l2){el.className='auto-res show';el.textContent='⚠️ 最高价不能低于最低价，请检查输入';return;}
+  const r=classifyOpenType(o1,h1,l1,c1,o2,h2,l2,c2);
+  setShape('openType',r.type);
+  if(r.type!=='open-auction')setShape('openTypeDir',r.dir);
+  el.className='auto-res show';
+  el.textContent=`✅ ${OT_LABELS[r.type]} — ${r.reason}　|　⚠️自动识别仅供参考，请对照图表肉眼确认`;
 }
 
 function calcIB(hId,lId,badgeId){
@@ -646,6 +731,25 @@ function analyze(){
     if(tibl<val){bear+=15;reasons.push('今日IB跌破昨VP VAL');tags.push({t:'今IB破VAL',c:'today'});}
   }
 
+  // 8b. Opening Type（开盘四型态）
+  const openType=getShape('openType','open-auction');
+  const openDir=getShape('openTypeDir','neutral');
+  const otWeights={'open-drive':28,'open-test-drive':24,'open-rejection-reverse':14,'open-auction':0};
+  let openAuction=false;
+  if(openType==='open-auction'){
+    openAuction=true;
+    reasons.push('开盘型态：Open-Auction 双向拍卖 → 倾向Balance Day，方向性打折');
+    tags.push({t:'开盘拍卖⚖️',c:'neutral'});
+  }else if(openDir==='bull'&&otWeights[openType]){
+    bull+=otWeights[openType];
+    reasons.push(`开盘型态：${OT_LABELS[openType]}，方向偏多`);
+    tags.push({t:openType==='open-drive'?'OpenDrive↑':openType==='open-test-drive'?'TestDrive↑':'Rejection↑',c:'bull'});
+  }else if(openDir==='bear'&&otWeights[openType]){
+    bear+=otWeights[openType];
+    reasons.push(`开盘型态：${OT_LABELS[openType]}，方向偏空`);
+    tags.push({t:openType==='open-drive'?'OpenDrive↓':openType==='open-test-drive'?'TestDrive↓':'Rejection↓',c:'bear'});
+  }
+
   // 9. Yesterday SP
   const nearT=vaR*0.15;
   sps.forEach(sp=>{
@@ -669,6 +773,7 @@ function analyze(){
   else if(bull>bear*1.3){bias='bull';conf=Math.min(92,50+Math.round((bull-bear)/total*60));}
   else if(bear>bull*1.3){bias='bear';conf=Math.min(92,50+Math.round((bear-bull)/total*60));}
   else{bias='neutral';conf=50;}
+  if(openAuction){conf=Math.round(conf*0.85);reasons.push('（Open-Auction 型态使整体置信度打折 ×0.85）');}
 
   // Weekly alignment
   const intraDay=bias;
@@ -841,7 +946,7 @@ function analyze(){
   document.getElementById('mpVis').textContent=genMP(shape,!isNaN(mpoc)?mpoc:poc,vah,val,cfg.dec);
 
   // Store
-  lastAnalysis={inst:INST[currentInst].name,vah,val,poc,mpvah,mpval,mpoc,ibh,ibl,w_vah,w_val,w_poc,w_mpvah,w_mpval,w_mpoc,w_ibh,w_ibl,open,tibh,tibl,shape,wshape,closePos,sps,wsps,bias,conf,w_bias,reasons,sc,fmt,cfg,...lastAnalysis};
+  lastAnalysis={inst:INST[currentInst].name,vah,val,poc,mpvah,mpval,mpoc,ibh,ibl,w_vah,w_val,w_poc,w_mpvah,w_mpval,w_mpoc,w_ibh,w_ibl,open,tibh,tibl,shape,wshape,closePos,openType,openDir,sps,wsps,bias,conf,w_bias,reasons,sc,fmt,cfg,...lastAnalysis};
   buildReport();
   document.getElementById('result').style.display='block';
   document.getElementById('result').scrollIntoView({behavior:'smooth'});
@@ -863,6 +968,8 @@ function genAIPrompt(){
 VP VAH：${fmt(a.vah)}　VP POC：${fmt(a.poc)}　VP VAL：${fmt(a.val)}
 VP 形态：${a.shape}形
 昨日收盘位置：${a.closePos}`;
+  if(a.openType&&a.openType!=='open-auction')p+=`\n\n【今日开盘型态】${OT_LABELS[a.openType]}，方向${a.openDir==='bull'?'偏多':a.openDir==='bear'?'偏空':'未定'}`;
+  else if(a.openType==='open-auction')p+=`\n\n【今日开盘型态】Open-Auction 双向拍卖，倾向Balance Day`;
   if(!isNaN(a.mpvah))p+=`\n\n【昨日 MP 数据】\nMP VAH：${fmt(a.mpvah)}　MP POC：${isNaN(a.mpoc)?'—':fmt(a.mpoc)}　MP VAL：${fmt(a.mpval)}`;
   if(!isNaN(a.ibh)&&!isNaN(a.ibl))p+=`\n昨日 IB：${fmt(a.ibl)} – ${fmt(a.ibh)}`;
   if(a.sps.length>0)p+=`\n昨日 SP：${a.sps.map(s=>`${fmt(s.lo)}–${fmt(s.hi)}(${s.dir==='above'?'↑阻力':'↓支撑'})`).join('，')}`;

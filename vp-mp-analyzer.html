@@ -390,24 +390,41 @@ select option{background:var(--panel);}
 <!-- ===== RESULT ===== -->
 <div id="result">
   <div class="divider"></div>
-  <div class="sec-title">多时间框架偏向</div>
-  <div class="mtf-bar" id="mtfBar"></div>
-  <div id="biasBar" class="bias-bar">
-    <div class="bias-icon" id="biasIcon"></div>
+  <div class="sec-title">VP 独立分析（Volume Profile）</div>
+  <div class="mtf-bar" id="vpMtfBar"></div>
+  <div id="vpBiasBar" class="bias-bar">
+    <div class="bias-icon" id="vpBiasIcon"></div>
     <div style="flex:1;min-width:0">
-      <div id="biasTitle" class="bias-title"></div>
-      <div id="biasSub" class="bias-sub"></div>
+      <div id="vpBiasTitle" class="bias-title"></div>
+      <div id="vpBiasSub" class="bias-sub"></div>
     </div>
-    <div class="conf"><div class="pct" id="confPct"></div><div class="lbl">置信度</div></div>
+    <div class="conf"><div class="pct" id="vpConfPct"></div><div class="lbl">置信度</div></div>
   </div>
-  <div id="trendWarn" style="display:none"></div>
-  <div class="tag-row" id="tagRow"></div>
+  <div id="vpTrendWarn" style="display:none"></div>
+  <div class="tag-row" id="vpTagRow"></div>
+
+  <div class="divider"></div>
+  <div class="sec-title">MP 独立分析（Market Profile）</div>
+  <div class="mtf-bar" id="mpMtfBar"></div>
+  <div id="mpBiasBar" class="bias-bar">
+    <div class="bias-icon" id="mpBiasIcon"></div>
+    <div style="flex:1;min-width:0">
+      <div id="mpBiasTitle" class="bias-title"></div>
+      <div id="mpBiasSub" class="bias-sub"></div>
+    </div>
+    <div class="conf"><div class="pct" id="mpConfPct"></div><div class="lbl">置信度</div></div>
+  </div>
+  <div id="mpTrendWarn" style="display:none"></div>
+  <div class="tag-row" id="mpTagRow"></div>
+
+  <div id="vpMpAlign" style="display:none;margin-top:10px"></div>
   <div id="todayAlert" style="display:none;margin-top:10px"></div>
   <div class="sec-title">关键价位汇总</div>
   <div class="levels-row" id="levelsRow"></div>
   <div id="spPanel" style="display:none"></div>
   <div id="tradeResult" style="display:none"></div>
   <!-- AI Prompt Box -->
+
   <div class="ai-box" id="aiBox">
     <div class="ai-box-title">✨ AI 分析提示词</div>
     <div class="ai-box-desc">复制下方提示词，粘贴给 Claude（claude.ai）即可获得专业 AI 分析报告</div>
@@ -652,163 +669,209 @@ function analyze(){
 
   if([vah,val,poc,open].some(isNaN)){alert('请至少填写 VP VAH、VAL、POC 和今日开盘价');return;}
 
-  let bull=0,bear=0;
-  const reasons=[],tags=[];
+  // ===== VP-only scoring =====
+  let vpBull=0,vpBear=0;
+  const vpReasons=[],vpTags=[];
 
-  // 1. Yesterday VP shape
-  if(shape==='P'){bull+=30;reasons.push('昨日VP P形看涨');tags.push({t:'P形↑',c:'bull'});}
-  else if(shape==='b'){bear+=30;reasons.push('昨日VP b形看跌');tags.push({t:'b形↓',c:'bear'});}
-  else if(shape==='D'){reasons.push('昨日VP D形均衡');tags.push({t:'D形均衡',c:'neutral'});}
-  else if(shape==='B'){reasons.push('昨日VP B形双分布');tags.push({t:'B形双POC',c:'gold'});}
+  // VP-1. Yesterday VP shape
+  if(shape==='P'){vpBull+=30;vpReasons.push('昨日VP P形看涨');vpTags.push({t:'P形↑',c:'bull'});}
+  else if(shape==='b'){vpBear+=30;vpReasons.push('昨日VP b形看跌');vpTags.push({t:'b形↓',c:'bear'});}
+  else if(shape==='D'){vpReasons.push('昨日VP D形均衡');vpTags.push({t:'D形均衡',c:'neutral'});}
+  else if(shape==='B'){vpReasons.push('昨日VP B形双分布');vpTags.push({t:'B形双POC',c:'gold'});}
   else if(shape==='Thin'){
-    if(closePos==='above_vah'||closePos==='in_va_top'){bull+=35;reasons.push('Thin+强势→趋势延续↑');tags.push({t:'Thin趋势↑',c:'bull'});}
-    else if(closePos==='below_val'||closePos==='in_va_bot'){bear+=35;reasons.push('Thin+弱势→趋势延续↓');tags.push({t:'Thin趋势↓',c:'bear'});}
-    else{reasons.push('Thin收盘中性，等突破');tags.push({t:'Thin等方向',c:'gold'});}
+    if(closePos==='above_vah'||closePos==='in_va_top'){vpBull+=35;vpReasons.push('Thin+强势→趋势延续↑');vpTags.push({t:'Thin趋势↑',c:'bull'});}
+    else if(closePos==='below_val'||closePos==='in_va_bot'){vpBear+=35;vpReasons.push('Thin+弱势→趋势延续↓');vpTags.push({t:'Thin趋势↓',c:'bear'});}
+    else{vpReasons.push('Thin收盘中性，等突破');vpTags.push({t:'Thin等方向',c:'gold'});}
   }
 
-  // 2. Close position
-  if(closePos==='above_vah'){bull+=25;reasons.push('昨收VP VAH上方');}
-  else if(closePos==='in_va_top')bull+=10;
-  else if(closePos==='in_va_bot')bear+=10;
-  else if(closePos==='below_val'){bear+=25;reasons.push('昨收VP VAL下方');}
+  // VP-2. Close position
+  if(closePos==='above_vah'){vpBull+=25;vpReasons.push('昨收VP VAH上方');}
+  else if(closePos==='in_va_top')vpBull+=10;
+  else if(closePos==='in_va_bot')vpBear+=10;
+  else if(closePos==='below_val'){vpBear+=25;vpReasons.push('昨收VP VAL下方');}
 
-  // 3. Open vs yesterday VP
+  // VP-3. Open vs yesterday VP
   const vaR=vah-val;
-  if(open>vah){bull+=20;reasons.push('开盘昨日VP VAH上方');tags.push({t:'开盘↑昨VAH',c:'bull'});}
-  else if(open<val){bear+=20;reasons.push('开盘昨日VP VAL下方');tags.push({t:'开盘↓昨VAL',c:'bear'});}
-  else if(open>poc)bull+=5; else bear+=5;
+  if(open>vah){vpBull+=20;vpReasons.push('开盘昨日VP VAH上方');vpTags.push({t:'开盘↑昨VAH',c:'bull'});}
+  else if(open<val){vpBear+=20;vpReasons.push('开盘昨日VP VAL下方');vpTags.push({t:'开盘↓昨VAL',c:'bear'});}
+  else if(open>poc)vpBull+=5; else vpBear+=5;
 
-  // 4. VP vs MP confluence (yesterday)
-  if(!isNaN(mpoc)){
-    const d=Math.abs(poc-mpoc);
-    if(vaR>0&&d/vaR<0.15){bull+=10;bear+=10;reasons.push('昨日VP/MP POC重合，极强磁力');tags.push({t:'昨双POC重合',c:'gold'});}
-    else reasons.push(`昨日VP POC(${fmt(poc)}) vs MP POC(${fmt(mpoc)}) 分离${d.toFixed(cfg.dec)}pt`);
-  }
-  if(!isNaN(mpvah)&&!isNaN(mpval)){
-    if(open>mpvah){bull+=8;reasons.push('开盘昨日MP VAH上方');}
-    else if(open<mpval){bear+=8;reasons.push('开盘昨日MP VAL下方');}
-  }
-
-  // 5. Yesterday IB
-  if(!isNaN(ibh)&&!isNaN(ibl)&&ibh>ibl){
-    const ibR=ibh-ibl;
-    if(ibR<cfg.narrow){reasons.push('昨IB窄→能量积累');tags.push({t:'昨IB窄⚡',c:'gold'});}
-    else if(ibR>cfg.wide){reasons.push('昨IB宽→能量释放');tags.push({t:'昨IB宽',c:'neutral'});}
-  }
-
-  // 6. Weekly VP analysis
+  // VP-4. Weekly VP analysis
   let w_bias='neutral';
   if(!isNaN(w_poc)){
-    if(open>w_poc){w_bias='bull';bull+=18;reasons.push('开盘在周线VP POC上方，周线偏多');tags.push({t:'开盘↑周POC',c:'week'});}
-    else if(open<w_poc){w_bias='bear';bear+=18;reasons.push('开盘在周线VP POC下方，周线偏空');tags.push({t:'开盘↓周POC',c:'week'});}
+    if(open>w_poc){w_bias='bull';vpBull+=18;vpReasons.push('开盘在周线VP POC上方，周线偏多');vpTags.push({t:'开盘↑周POC',c:'week'});}
+    else if(open<w_poc){w_bias='bear';vpBear+=18;vpReasons.push('开盘在周线VP POC下方，周线偏空');vpTags.push({t:'开盘↓周POC',c:'week'});}
   }
-  if(!isNaN(w_vah)&&open>w_vah){bull+=12;w_bias='bull';reasons.push('开盘突破周线VP VAH，极强多头');}
-  if(!isNaN(w_val)&&open<w_val){bear+=12;w_bias='bear';reasons.push('开盘跌破周线VP VAL，极强空头');}
-  if(wshape==='P'){bull+=12;reasons.push('周线VP P形，大级别看涨结构');tags.push({t:'周VP P形↑',c:'week'});}
-  else if(wshape==='b'){bear+=12;reasons.push('周线VP b形，大级别看跌结构');tags.push({t:'周VP b形↓',c:'week'});}
+  if(!isNaN(w_vah)&&open>w_vah){vpBull+=12;w_bias='bull';vpReasons.push('开盘突破周线VP VAH，极强多头');}
+  if(!isNaN(w_val)&&open<w_val){vpBear+=12;w_bias='bear';vpReasons.push('开盘跌破周线VP VAL，极强空头');}
+  if(wshape==='P'){vpBull+=12;vpReasons.push('周线VP P形，大级别看涨结构');vpTags.push({t:'周VP P形↑',c:'week'});}
+  else if(wshape==='b'){vpBear+=12;vpReasons.push('周线VP b形，大级别看跌结构');vpTags.push({t:'周VP b形↓',c:'week'});}
   else if(wshape==='Thin'){
-    if(w_bias==='bull'){bull+=10;reasons.push('周线VP Thin+偏多，趋势强劲');}
-    else if(w_bias==='bear'){bear+=10;reasons.push('周线VP Thin+偏空，趋势强劲');}
+    if(w_bias==='bull'){vpBull+=10;vpReasons.push('周线VP Thin+偏多，趋势强劲');}
+    else if(w_bias==='bear'){vpBear+=10;vpReasons.push('周线VP Thin+偏空，趋势强劲');}
   }
 
-  // 7. Weekly MP
+  const vpTotal=vpBull+vpBear;
+  let vpBias,vpConf;
+  if(vpTotal===0){vpBias='neutral';vpConf=50;}
+  else if(vpBull>vpBear*1.3){vpBias='bull';vpConf=Math.min(92,50+Math.round((vpBull-vpBear)/vpTotal*60));}
+  else if(vpBear>vpBull*1.3){vpBias='bear';vpConf=Math.min(92,50+Math.round((vpBear-vpBull)/vpTotal*60));}
+  else{vpBias='neutral';vpConf=50;}
+  const vpWAlign=(w_bias===vpBias)||(w_bias==='neutral');
+  if(!vpWAlign){vpConf=Math.max(30,vpConf-15);}
+  else if(w_bias!=='neutral'&&vpWAlign){vpConf=Math.min(92,vpConf+8);}
+
+  // ===== MP-only scoring =====
+  let mpBull=0,mpBear=0;
+  const mpReasons=[],mpTags=[];
+
+  // MP-1. Open vs yesterday MP VAH/VAL
+  if(!isNaN(mpvah)&&!isNaN(mpval)){
+    if(open>mpvah){mpBull+=20;mpReasons.push('开盘昨日MP VAH上方');mpTags.push({t:'开盘↑昨MPVAH',c:'bull'});}
+    else if(open<mpval){mpBear+=20;mpReasons.push('开盘昨日MP VAL下方');mpTags.push({t:'开盘↓昨MPVAL',c:'bear'});}
+    else if(!isNaN(mpoc)){if(open>mpoc)mpBull+=6;else mpBear+=6;}
+  }
+
+  // MP-2. Yesterday IB width（信息性，不计分）
+  if(!isNaN(ibh)&&!isNaN(ibl)&&ibh>ibl){
+    const ibR=ibh-ibl;
+    if(ibR<cfg.narrow){mpReasons.push('昨IB窄→能量积累');mpTags.push({t:'昨IB窄⚡',c:'gold'});}
+    else if(ibR>cfg.wide){mpReasons.push('昨IB宽→能量释放');mpTags.push({t:'昨IB宽',c:'neutral'});}
+  }
+
+  // MP-3. Weekly MP
+  let w_mbias='neutral';
   if(!isNaN(w_mpoc)){
-    const wd=Math.abs(w_poc-w_mpoc);
-    if(!isNaN(w_poc)&&!isNaN(w_vah)&&wd/(w_vah-w_val||1)<0.15){
-      bull+=8;bear+=8;reasons.push('周线VP/MP POC重合，极强周线磁力');tags.push({t:'周双POC重合',c:'week'});
-    }
-    if(open>w_mpoc){bull+=6;reasons.push('开盘在周线MP POC上方');}
-    else if(open<w_mpoc){bear+=6;reasons.push('开盘在周线MP POC下方');}
+    if(open>w_mpoc){w_mbias='bull';mpBull+=15;mpReasons.push('开盘在周线MP POC上方');mpTags.push({t:'开盘↑周MPPOC',c:'week'});}
+    else if(open<w_mpoc){w_mbias='bear';mpBear+=15;mpReasons.push('开盘在周线MP POC下方');mpTags.push({t:'开盘↓周MPPOC',c:'week'});}
   }
-  if(!isNaN(w_mpvah)&&!isNaN(w_mpval)){
-    if(open>w_mpvah){bull+=8;reasons.push('开盘突破周线MP VAH，周线多头确认');}
-    else if(open<w_mpval){bear+=8;reasons.push('开盘跌破周线MP VAL，周线空头确认');}
+  if(!isNaN(w_mpvah)&&open>w_mpvah){mpBull+=12;w_mbias='bull';mpReasons.push('开盘突破周线MP VAH，周线多头确认');}
+  if(!isNaN(w_mpval)&&open<w_mpval){mpBear+=12;w_mbias='bear';mpReasons.push('开盘跌破周线MP VAL，周线空头确认');}
+
+  // MP-4. Today IB breakout（相对昨日IB，纯MP口径）
+  if(!isNaN(tibh)&&!isNaN(tibl)&&tibh>tibl&&!isNaN(ibh)&&!isNaN(ibl)){
+    if(tibh>ibh){mpBull+=15;mpReasons.push('今日IB突破昨日IB High');mpTags.push({t:'今IB破昨高',c:'today'});}
+    if(tibl<ibl){mpBear+=15;mpReasons.push('今日IB跌破昨日IB Low');mpTags.push({t:'今IB破昨低',c:'today'});}
   }
 
-  // 8. Today IB
-  if(!isNaN(tibh)&&!isNaN(tibl)&&tibh>tibl){
-    if(tibh>vah){bull+=15;reasons.push('今日IB突破昨VP VAH');tags.push({t:'今IB突VAH',c:'today'});}
-    if(tibl<val){bear+=15;reasons.push('今日IB跌破昨VP VAL');tags.push({t:'今IB破VAL',c:'today'});}
-  }
-
-  // 8b. Opening Type（开盘四型态）
+  // MP-5. Opening Type（开盘四型态，属IB行为，归MP）
   const openType=getShape('openType','open-auction');
   const openDir=getShape('openTypeDir','neutral');
   const otWeights={'open-drive':28,'open-test-drive':24,'open-rejection-reverse':14,'open-auction':0};
   let openAuction=false;
   if(openType==='open-auction'){
     openAuction=true;
-    reasons.push('开盘型态：Open-Auction 双向拍卖 → 倾向Balance Day，方向性打折');
-    tags.push({t:'开盘拍卖⚖️',c:'neutral'});
+    mpReasons.push('开盘型态：Open-Auction 双向拍卖 → 倾向Balance Day，方向性打折');
+    mpTags.push({t:'开盘拍卖⚖️',c:'neutral'});
   }else if(openDir==='bull'&&otWeights[openType]){
-    bull+=otWeights[openType];
-    reasons.push(`开盘型态：${OT_LABELS[openType]}，方向偏多`);
-    tags.push({t:openType==='open-drive'?'OpenDrive↑':openType==='open-test-drive'?'TestDrive↑':'Rejection↑',c:'bull'});
+    mpBull+=otWeights[openType];
+    mpReasons.push(`开盘型态：${OT_LABELS[openType]}，方向偏多`);
+    mpTags.push({t:openType==='open-drive'?'OpenDrive↑':openType==='open-test-drive'?'TestDrive↑':'Rejection↑',c:'bull'});
   }else if(openDir==='bear'&&otWeights[openType]){
-    bear+=otWeights[openType];
-    reasons.push(`开盘型态：${OT_LABELS[openType]}，方向偏空`);
-    tags.push({t:openType==='open-drive'?'OpenDrive↓':openType==='open-test-drive'?'TestDrive↓':'Rejection↓',c:'bear'});
+    mpBear+=otWeights[openType];
+    mpReasons.push(`开盘型态：${OT_LABELS[openType]}，方向偏空`);
+    mpTags.push({t:openType==='open-drive'?'OpenDrive↓':openType==='open-test-drive'?'TestDrive↓':'Rejection↓',c:'bear'});
   }
 
-  // 9. Yesterday SP
+  // MP-6. Single Print（TPO价格真空，纯MP概念）
   const nearT=vaR*0.15;
   sps.forEach(sp=>{
     const inSP=open>=sp.lo&&open<=sp.hi,near=!inSP&&Math.abs(sp.mid-open)<nearT;
-    if(inSP){reasons.push(`开盘在昨日SP真空(${fmt(sp.lo)}–${fmt(sp.hi)})内`);tags.push({t:'开盘在SP内',c:'neutral'});}
-    else if(near){reasons.push(`昨日SP(${fmt(sp.lo)}–${fmt(sp.hi)})极近`);tags.push({t:'SP极近',c:'neutral'});}
-    if(sp.dir==='below'&&sp.hi<open)bull+=8;
-    else if(sp.dir==='above'&&sp.lo>open)bear+=8;
+    if(inSP){mpReasons.push(`开盘在昨日SP真空(${fmt(sp.lo)}–${fmt(sp.hi)})内`);mpTags.push({t:'开盘在SP内',c:'neutral'});}
+    else if(near){mpReasons.push(`昨日SP(${fmt(sp.lo)}–${fmt(sp.hi)})极近`);mpTags.push({t:'SP极近',c:'neutral'});}
+    if(sp.dir==='below'&&sp.hi<open)mpBull+=8;
+    else if(sp.dir==='above'&&sp.lo>open)mpBear+=8;
   });
-  // Weekly SP
   wsps.forEach(sp=>{
-    if(open>=sp.lo&&open<=sp.hi){reasons.push(`开盘在周线SP真空(${fmt(sp.lo)}–${fmt(sp.hi)})内`);tags.push({t:'周SP真空',c:'week'});}
-    if(sp.dir==='below'&&sp.hi<open)bull+=6;
-    else if(sp.dir==='above'&&sp.lo>open)bear+=6;
+    if(open>=sp.lo&&open<=sp.hi){mpReasons.push(`开盘在周线SP真空(${fmt(sp.lo)}–${fmt(sp.hi)})内`);mpTags.push({t:'周SP真空',c:'week'});}
+    if(sp.dir==='below'&&sp.hi<open)mpBull+=6;
+    else if(sp.dir==='above'&&sp.lo>open)mpBear+=6;
   });
 
-  // Bias
-  const total=bull+bear;
-  let bias,conf;
-  if(total===0){bias='neutral';conf=50;}
-  else if(bull>bear*1.3){bias='bull';conf=Math.min(92,50+Math.round((bull-bear)/total*60));}
-  else if(bear>bull*1.3){bias='bear';conf=Math.min(92,50+Math.round((bear-bull)/total*60));}
-  else{bias='neutral';conf=50;}
-  if(openAuction){conf=Math.round(conf*0.85);reasons.push('（Open-Auction 型态使整体置信度打折 ×0.85）');}
+  const mpTotal=mpBull+mpBear;
+  let mpBias,mpConf;
+  if(mpTotal===0){mpBias='neutral';mpConf=50;}
+  else if(mpBull>mpBear*1.3){mpBias='bull';mpConf=Math.min(92,50+Math.round((mpBull-mpBear)/mpTotal*60));}
+  else if(mpBear>mpBull*1.3){mpBias='bear';mpConf=Math.min(92,50+Math.round((mpBear-mpBull)/mpTotal*60));}
+  else{mpBias='neutral';mpConf=50;}
+  if(openAuction){mpConf=Math.round(mpConf*0.85);mpReasons.push('（Open-Auction 型态使MP置信度打折 ×0.85）');}
+  const mpWAlign=(w_mbias===mpBias)||(w_mbias==='neutral');
+  if(!mpWAlign){mpConf=Math.max(30,mpConf-15);}
+  else if(w_mbias!=='neutral'&&mpWAlign){mpConf=Math.min(92,mpConf+8);}
 
-  // Weekly alignment
-  const intraDay=bias;
-  const wAlign=(w_bias===intraDay)||(w_bias==='neutral');
-  if(!wAlign){conf=Math.max(30,conf-15);}
-  else if(w_bias!=='neutral'&&wAlign){conf=Math.min(92,conf+8);}
+  // ===== VP/MP 关系提示（信息性，不影响任一方评分）=====
+  let confluenceNote='';
+  if(!isNaN(mpoc)){
+    const d=Math.abs(poc-mpoc);
+    if(vaR>0&&d/vaR<0.15)confluenceNote='📍 昨日VP POC与MP POC重合（相差'+d.toFixed(cfg.dec)+'pt）→ 极强磁力价位，双重确认';
+  }
 
-  // MTF bar
-  document.getElementById('mtfBar').innerHTML=[
-    {label:'周线',bias:w_bias,sub:w_bias==='bull'?'看涨':w_bias==='bear'?'看跌':'横盘'},
-    {label:'今日综合',bias:intraDay,sub:intraDay==='bull'?'偏多':intraDay==='bear'?'偏空':'中性'},
+  // 供后续沿用（保留 bias/conf 命名以兼容 trade-setup / scenario 区块，取VP为主）
+  const bias=vpBias, conf=vpConf;
+
+  // VP bias bar
+  document.getElementById('vpMtfBar').innerHTML=[
+    {label:'VP周线',bias:w_bias,sub:w_bias==='bull'?'看涨':w_bias==='bear'?'看跌':'横盘'},
+    {label:'VP今日',bias:vpBias,sub:vpBias==='bull'?'偏多':vpBias==='bear'?'偏空':'中性'},
   ].map(m=>`<div class="mtf-card ${m.bias}">
     <div class="mn">${m.label}</div>
     <div class="mv">${m.bias==='bull'?'📈 看涨':m.bias==='bear'?'📉 看跌':'⚖️ 横盘'}</div>
     <div class="ms">${m.sub}</div></div>`).join('');
+  document.getElementById('vpBiasBar').className='bias-bar '+vpBias;
+  document.getElementById('vpBiasIcon').textContent=vpBias==='bull'?'📈':vpBias==='bear'?'📉':'⚖️';
+  const vbt=document.getElementById('vpBiasTitle');
+  vbt.textContent=vpBias==='bull'?'VP偏多 — 今日看涨':vpBias==='bear'?'VP偏空 — 今日看跌':'VP中性 — 区间震荡';
+  vbt.className='bias-title '+vpBias;
+  document.getElementById('vpBiasSub').textContent=vpReasons.join('；')||'暂无足够数据';
+  document.getElementById('vpConfPct').textContent=vpConf+'%';
+  document.getElementById('vpTagRow').innerHTML=vpTags.map(t=>`<span class="tag ${t.c}">${t.t}</span>`).join('');
+  const vtw=document.getElementById('vpTrendWarn');
+  if(!vpWAlign&&vpBias!=='neutral'){
+    vtw.innerHTML=`<div class="warn-box conflict">⚠️ VP周线与VP今日冲突：今日偏${vpBias==='bull'?'多':'空'}，周线方向相反，置信度已降低。</div>`;
+    vtw.style.display='block';
+  } else if(w_bias!=='neutral'&&vpWAlign){
+    vtw.innerHTML=`<div class="warn-box align">✅ VP周线与VP今日一致：${vpBias==='bull'?'双重看涨，顺势做多':'双重看跌，顺势做空'}。</div>`;
+    vtw.style.display='block';
+  } else vtw.style.display='none';
 
-  // Bias bar
-  document.getElementById('biasBar').className='bias-bar '+bias;
-  document.getElementById('biasIcon').textContent=bias==='bull'?'📈':bias==='bear'?'📉':'⚖️';
-  const bt=document.getElementById('biasTitle');
-  bt.textContent=bias==='bull'?'综合偏多 — 今日看涨':bias==='bear'?'综合偏空 — 今日看跌':'综合中性 — 区间震荡';
-  bt.className='bias-title '+bias;
-  document.getElementById('biasSub').textContent=reasons.join('；');
-  document.getElementById('confPct').textContent=conf+'%';
-  document.getElementById('tagRow').innerHTML=tags.map(t=>`<span class="tag ${t.c}">${t.t}</span>`).join('');
+  // MP bias bar
+  document.getElementById('mpMtfBar').innerHTML=[
+    {label:'MP周线',bias:w_mbias,sub:w_mbias==='bull'?'看涨':w_mbias==='bear'?'看跌':'横盘'},
+    {label:'MP今日',bias:mpBias,sub:mpBias==='bull'?'偏多':mpBias==='bear'?'偏空':'中性'},
+  ].map(m=>`<div class="mtf-card ${m.bias}">
+    <div class="mn">${m.label}</div>
+    <div class="mv">${m.bias==='bull'?'📈 看涨':m.bias==='bear'?'📉 看跌':'⚖️ 横盘'}</div>
+    <div class="ms">${m.sub}</div></div>`).join('');
+  document.getElementById('mpBiasBar').className='bias-bar '+mpBias;
+  document.getElementById('mpBiasIcon').textContent=mpBias==='bull'?'📈':mpBias==='bear'?'📉':'⚖️';
+  const mbt=document.getElementById('mpBiasTitle');
+  mbt.textContent=mpBias==='bull'?'MP偏多 — 今日看涨':mpBias==='bear'?'MP偏空 — 今日看跌':'MP中性 — 区间震荡';
+  mbt.className='bias-title '+mpBias;
+  document.getElementById('mpBiasSub').textContent=mpReasons.join('；')||'暂无足够数据';
+  document.getElementById('mpConfPct').textContent=mpConf+'%';
+  document.getElementById('mpTagRow').innerHTML=mpTags.map(t=>`<span class="tag ${t.c}">${t.t}</span>`).join('');
+  const mtw=document.getElementById('mpTrendWarn');
+  if(!mpWAlign&&mpBias!=='neutral'){
+    mtw.innerHTML=`<div class="warn-box conflict">⚠️ MP周线与MP今日冲突：今日偏${mpBias==='bull'?'多':'空'}，周线方向相反，置信度已降低。</div>`;
+    mtw.style.display='block';
+  } else if(w_mbias!=='neutral'&&mpWAlign){
+    mtw.innerHTML=`<div class="warn-box align">✅ MP周线与MP今日一致：${mpBias==='bull'?'双重看涨，顺势做多':'双重看跌，顺势做空'}。</div>`;
+    mtw.style.display='block';
+  } else mtw.style.display='none';
 
-  // Trend warning
-  const tw=document.getElementById('trendWarn');
-  if(!wAlign&&bias!=='neutral'){
-    tw.innerHTML=`<div class="warn-box conflict">⚠️ 周线与今日偏向冲突：今日偏${bias==='bull'?'多':'空'}，但周线方向相反。置信度已降低，建议缩小仓位。</div>`;
-    tw.style.display='block';
-  } else if(w_bias!=='neutral'&&wAlign){
-    tw.innerHTML=`<div class="warn-box align">✅ 周线与今日偏向一致：${bias==='bull'?'周线+今日双重看涨，顺势做多':'周线+今日双重看跌，顺势做空'}。置信度提升。</div>`;
-    tw.style.display='block';
-  } else tw.style.display='none';
+  // VP vs MP 一致性
+  const alignEl=document.getElementById('vpMpAlign');
+  if(vpBias!=='neutral'&&mpBias!=='neutral'){
+    if(vpBias===mpBias){
+      alignEl.innerHTML=`<div class="warn-box align">✅ VP与MP方向一致（同偏${vpBias==='bull'?'多':'空'}）→ 两套框架互相验证，信心较高。${confluenceNote?'<br>'+confluenceNote:''}</div>`;
+    }else{
+      alignEl.innerHTML=`<div class="warn-box conflict">⚠️ VP与MP方向不一致（VP偏${vpBias==='bull'?'多':'空'}，MP偏${mpBias==='bull'?'多':'空'}）→ 市场结构分歧，建议降低仓位或观望，等两者收敛再动作。${confluenceNote?'<br>'+confluenceNote:''}</div>`;
+    }
+    alignEl.style.display='block';
+  }else if(confluenceNote){
+    alignEl.innerHTML=`<div class="warn-box align">${confluenceNote}</div>`;
+    alignEl.style.display='block';
+  }else alignEl.style.display='none';
 
   // Today alert
   const ta=document.getElementById('todayAlert');
@@ -946,7 +1009,7 @@ function analyze(){
   document.getElementById('mpVis').textContent=genMP(shape,!isNaN(mpoc)?mpoc:poc,vah,val,cfg.dec);
 
   // Store
-  lastAnalysis={inst:INST[currentInst].name,vah,val,poc,mpvah,mpval,mpoc,ibh,ibl,w_vah,w_val,w_poc,w_mpvah,w_mpval,w_mpoc,w_ibh,w_ibl,open,tibh,tibl,shape,wshape,closePos,openType,openDir,sps,wsps,bias,conf,w_bias,reasons,sc,fmt,cfg,...lastAnalysis};
+  lastAnalysis={inst:INST[currentInst].name,vah,val,poc,mpvah,mpval,mpoc,ibh,ibl,w_vah,w_val,w_poc,w_mpvah,w_mpval,w_mpoc,w_ibh,w_ibl,open,tibh,tibl,shape,wshape,closePos,openType,openDir,sps,wsps,bias,conf,w_bias,vpBias,vpConf,vpReasons,mpBias,mpConf,mpReasons,sc,fmt,cfg,...lastAnalysis};
   buildReport();
   document.getElementById('result').style.display='block';
   document.getElementById('result').scrollIntoView({behavior:'smooth'});

@@ -336,38 +336,14 @@ select option{background:var(--panel);}
 <div class="card today-card">
   <div class="ctitle td"><span class="dot" style="background:var(--today)"></span>今日数据</div>
   <div class="grid3" style="margin-bottom:0">
-    <div class="field" style="margin-bottom:0"><label>今日开盘价 <span class="req">必填</span></label><input type="number" id="open" placeholder="今日开盘" step="0.01"></div>
+    <div class="field" style="margin-bottom:0"><label>今日开盘价 <span class="req">必填</span></label><input type="number" id="open" placeholder="今日开盘" step="0.01" oninput="calcTodayIB()"></div>
     <div class="field" style="margin-bottom:0"><label>今日IB高点 <span class="opt">盘中填</span></label><input type="number" id="tibh" placeholder="首小时最高" step="0.01" oninput="calcTodayIB()"></div>
     <div class="field" style="margin-bottom:0"><label>今日IB低点 <span class="opt">盘中填</span></label><input type="number" id="tibl" placeholder="首小时最低" step="0.01" oninput="calcTodayIB()"></div>
   </div>
   <div class="today-ib-res" id="todayIBRes"></div>
 
   <div class="field" style="margin-top:12px">
-    <label>开盘 IB 前两根K线 OHLC <span class="opt">自动识别开盘型态</span></label>
-    <div class="note td" style="margin-bottom:6px">按你看盘的K线周期填（如30分钟或1小时），用来判断开盘四型态</div>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:4px">K1（第1根）</div>
-    <div class="irow" style="margin-bottom:6px">
-      <div class="field"><input type="number" id="k1o" placeholder="开" step="0.01"></div>
-      <div class="field"><input type="number" id="k1h" placeholder="高" step="0.01"></div>
-    </div>
-    <div class="irow" style="margin-bottom:10px">
-      <div class="field"><input type="number" id="k1l" placeholder="低" step="0.01"></div>
-      <div class="field"><input type="number" id="k1c" placeholder="收" step="0.01"></div>
-    </div>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:4px">K2（第2根）</div>
-    <div class="irow" style="margin-bottom:6px">
-      <div class="field"><input type="number" id="k2o" placeholder="开" step="0.01"></div>
-      <div class="field"><input type="number" id="k2h" placeholder="高" step="0.01"></div>
-    </div>
-    <div class="irow">
-      <div class="field"><input type="number" id="k2l" placeholder="低" step="0.01"></div>
-      <div class="field"><input type="number" id="k2c" placeholder="收" step="0.01"></div>
-    </div>
-  </div>
-  <button class="auto-btn" onclick="autoDetectOpenType()">🔍 自动识别开盘型态</button>
-  <div class="auto-res" id="openTypeRes"></div>
-  <div class="field">
-    <label>开盘型态</label>
+    <label>开盘型态 <span class="opt">TradingView 指标已自动判断，直接选</span></label>
     <div class="shape-grid" id="openType" style="grid-template-columns:1fr 1fr">
       <div class="sbtn" data-val="open-drive"><span class="si">🚀</span>Open-Drive<br><small style="color:var(--muted);font-size:9px">单边最强</small></div>
       <div class="sbtn" data-val="open-test-drive"><span class="si">🔄</span>Test-Drive<br><small style="color:var(--muted);font-size:9px">假突破反转</small></div>
@@ -376,7 +352,7 @@ select option{background:var(--panel);}
     </div>
   </div>
   <div class="field">
-    <label>型态方向 <span class="opt">自动识别后带入，可手动覆盖</span></label>
+    <label>型态方向 <span class="opt">已根据今日IB自动带入，可手动覆盖</span></label>
     <div class="shape-grid" id="openTypeDir" style="grid-template-columns:1fr 1fr">
       <div class="sbtn" data-val="bull"><span class="si">📈</span>偏多</div>
       <div class="sbtn" data-val="bear"><span class="si">📉</span>偏空</div>
@@ -531,48 +507,6 @@ function autoDetect(){
 
 const OT_LABELS={'open-drive':'Open-Drive（单边最强）','open-test-drive':'Open-Test-Drive（假突破真反转）','open-rejection-reverse':'Open-Rejection-Reverse（拒绝后反向）','open-auction':'Open-Auction（双向拍卖）'};
 
-function classifyOpenType(o1,h1,l1,c1,o2,h2,l2,c2){
-  const range1=(h1-l1)||0.0001, range2=(h2-l2)||0.0001;
-  const body1=Math.abs(c1-o1), body2=Math.abs(c2-o2);
-  const br1=body1/range1, br2=body2/range2;
-  const dir1=c1>=o1?1:-1, dir2=c2>=o2?1:-1;
-  const sameDir=dir1===dir2;
-  const totalHigh=Math.max(h1,h2), totalLow=Math.min(l1,l2);
-  const totalRange=(totalHigh-totalLow)||0.0001;
-  const netMove=c2-o1;
-  const netRatio=Math.abs(netMove)/totalRange;
-  const dir=netMove>=0?'bull':'bear';
-
-  let type,reason;
-  if(sameDir&&br1>=0.55&&br2>=0.5&&netRatio>=0.65){
-    type='open-drive';
-    reason=`两根同向(${dir1>0?'涨':'跌'})，实体占比${(br1*100).toFixed(0)}%/${(br2*100).toFixed(0)}%，净移动占总波幅${(netRatio*100).toFixed(0)}% → 几乎无回测，单边直冲`;
-  }else if(!sameDir&&br2>=0.55&&netRatio>=0.45){
-    type='open-test-drive';
-    reason=`第一根测试${dir1>0?'上':'下'}方后失败，第二根反向(${dir2>0?'涨':'跌'})强力延伸，实体占比${(br2*100).toFixed(0)}%，净移动占比${(netRatio*100).toFixed(0)}% → 假突破后真反转`;
-  }else if(br1<0.45&&!sameDir&&netRatio>=0.3){
-    type='open-rejection-reverse';
-    reason=`第一根长影线/小实体（实体占比仅${(br1*100).toFixed(0)}%）代表开盘方向被拒绝，第二根确认反向 → 拒绝后反向确立，强度中等`;
-  }else{
-    type='open-auction';
-    reason=`两根实体均不大(${(br1*100).toFixed(0)}%/${(br2*100).toFixed(0)}%)，净移动仅占总波幅${(netRatio*100).toFixed(0)}% → 围绕开盘价双向拍卖，无明确方向`;
-  }
-  return{type,reason,dir,br1,br2,netRatio};
-}
-
-function autoDetectOpenType(){
-  const o1=gv('k1o'),h1=gv('k1h'),l1=gv('k1l'),c1=gv('k1c');
-  const o2=gv('k2o'),h2=gv('k2h'),l2=gv('k2l'),c2=gv('k2c');
-  const el=document.getElementById('openTypeRes');
-  if([o1,h1,l1,c1,o2,h2,l2,c2].some(isNaN)){el.className='auto-res show';el.textContent='⚠️ 请先填写两根K线完整OHLC（开/高/低/收）';return;}
-  if(h1<l1||h2<l2){el.className='auto-res show';el.textContent='⚠️ 最高价不能低于最低价，请检查输入';return;}
-  const r=classifyOpenType(o1,h1,l1,c1,o2,h2,l2,c2);
-  setShape('openType',r.type);
-  if(r.type!=='open-auction')setShape('openTypeDir',r.dir);
-  el.className='auto-res show';
-  el.textContent=`✅ ${OT_LABELS[r.type]} — ${r.reason}　|　⚠️自动识别仅供参考，请对照图表肉眼确认`;
-}
-
 function calcIB(hId,lId,badgeId){
   const h=gv(hId),l=gv(lId),el=document.getElementById(badgeId);
   if(isNaN(h)||isNaN(l)||h<=l){el.style.display='none';return;}
@@ -585,7 +519,7 @@ function calcIB(hId,lId,badgeId){
 }
 
 function calcTodayIB(){
-  const th=gv('tibh'),tl=gv('tibl'),vah=gv('vah'),val=gv('val'),poc=gv('poc'),ibh=gv('ibh'),ibl=gv('ibl');
+  const th=gv('tibh'),tl=gv('tibl'),vah=gv('vah'),val=gv('val'),poc=gv('poc'),ibh=gv('ibh'),ibl=gv('ibl'),op=gv('open');
   const el=document.getElementById('todayIBRes');
   if(isNaN(th)||isNaN(tl)||th<=tl){el.style.display='none';return;}
   const cfg=INST[currentInst],r=th-tl,lines=[];
@@ -607,6 +541,15 @@ function calcTodayIB(){
   if(!isNaN(ibh)&&th>ibh)lines.push(`📈 突破昨日IB High(${fmt(ibh)}) → 多头延伸`);
   if(!isNaN(ibl)&&tl<ibl)lines.push(`📉 跌破昨日IB Low(${fmt(ibl)}) → 空头延伸`);
   if(!isNaN(poc)&&th>poc&&tl<poc)lines.push(`⚖️ 今日IB包含VP POC(${fmt(poc)}) → POC在IB内，今天围绕POC博弈概率高`);
+
+  if(!isNaN(op)){
+    const upExt=th-op, downExt=op-tl;
+    if(upExt>0||downExt>0){
+      const dir=upExt>downExt?'bull':'bear';
+      setShape('openTypeDir',dir);
+      lines.push(`🧭 型态方向已自动带入：IB向上延伸${fmt(upExt)} vs 向下延伸${fmt(downExt)} → ${dir==='bull'?'偏多':'偏空'}（可手动覆盖）`);
+    }
+  }
 
   el.innerHTML=lines.map(l=>`<div style="margin-bottom:4px">• ${l}</div>`).join('');
   el.className='today-ib-res show';

@@ -95,6 +95,10 @@ select option{background:var(--panel);}
 .mtf-card.neutral{background:rgba(121,134,203,.1);border-color:rgba(121,134,203,.3);}.mtf-card.neutral .mv{color:var(--neutral);}
 .trade-result{background:var(--panel);border:1px solid rgba(240,180,41,.3);border-radius:12px;padding:14px;margin-bottom:12px;}
 .trade-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:10px;}
+.plan-tag{display:inline-block;font-size:9px;padding:2px 7px;border-radius:10px;margin-left:6px;text-transform:none;letter-spacing:0;font-weight:700;vertical-align:middle}
+.plan-tag.primary{background:rgba(38,166,154,.15);color:var(--bull)}
+.plan-tag.secondary{background:rgba(239,83,80,.12);color:var(--bear)}
+.plan-tag.ref{background:rgba(140,140,140,.15);color:var(--muted)}
 .trade-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;}
 .tcard{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
 .tcard .tn{font-size:9px;color:var(--label);text-transform:uppercase;margin-bottom:3px;}
@@ -870,41 +874,55 @@ function analyze(){
     spEl.innerHTML=html; spEl.style.display='block';
   } else spEl.style.display='none';
 
-  // Auto trade setup
+  // Auto trade setup — 多空双方案都给，不管 bias 是否 neutral
   const trEl=document.getElementById('tradeResult');
-  if(bias!=='neutral'){
-    const isBuy=bias==='bull';
+  function buildPlan(dir){
+    const isBuy=dir==='bull';
     let entry,sl,tp1,tp2,entryR,slR,tp1R,tp2R;
     if(isBuy){
       entry=open>vah?vah:poc; entryR=open>vah?'回踩昨VP VAH入多':'昨VP POC支撑入多';
       sl=open>vah?poc-(vaR*0.05):val-(vaR*0.05); slR=open>vah?'VP POC下方':'VP VAL下方';
-      // TP1 必须高于入场价，否则改用安全延伸目标
       if(!isNaN(ibh)&&ibh>entry){ tp1=ibh; tp1R='昨IB High'; }
       else { tp1=entry+vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
       tp2=!isNaN(w_vah)&&w_vah>tp1?w_vah:tp1+vaR*0.8; tp2R=!isNaN(w_vah)&&w_vah>tp1?'周线VP VAH':'延伸目标';
     } else {
       entry=open<val?val:poc; entryR=open<val?'反弹昨VP VAL入空':'昨VP POC阻力入空';
       sl=open<val?poc+(vaR*0.05):vah+(vaR*0.05); slR=open<val?'VP POC上方':'VP VAH上方';
-      // TP1 必须低于入场价，否则改用安全延伸目标
       if(!isNaN(ibl)&&ibl<entry){ tp1=ibl; tp1R='昨IB Low'; }
       else { tp1=entry-vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
       tp2=!isNaN(w_val)&&w_val<tp1?w_val:tp1-vaR*0.8; tp2R=!isNaN(w_val)&&w_val<tp1?'周线VP VAL':'延伸目标';
     }
     const risk=Math.abs(entry-sl),r1=Math.abs(tp1-entry),r2=Math.abs(tp2-entry);
     const rr1=(r1/risk).toFixed(2),rr2=(r2/risk).toFixed(2),rp=risk/(risk+r1)*100;
-    trEl.innerHTML=`<div class="trade-result"><div class="trade-title">📐 自动推算入场方案（${isBuy?'做多 📈':'做空 📉'}）</div>
+    return{isBuy,entry,sl,tp1,tp2,entryR,slR,tp1R,tp2R,risk,r1,r2,rr1,rr2,rp};
+  }
+  const planBull=buildPlan('bull'), planBear=buildPlan('bear');
+  function planCard(p,tagLabel,tagClass){
+    return `<div class="trade-result" style="margin-bottom:10px">
+      <div class="trade-title">${p.isBuy?'📈 做多方案':'📉 做空方案'} <span class="plan-tag ${tagClass}">${tagLabel}</span></div>
       <div class="trade-grid">
-        <div class="tcard entry"><div class="tn">建议入场</div><div class="tv">${fmt(entry)}</div><div class="ts">${entryR}</div></div>
-        <div class="tcard sl"><div class="tn">止损 SL</div><div class="tv">${fmt(sl)}</div><div class="ts">${slR} | 风险${fmt(risk)}pt</div></div>
-        <div class="tcard tp"><div class="tn">止盈 TP1</div><div class="tv">${fmt(tp1)}</div><div class="ts">${tp1R} | R:R 1:${rr1}</div></div>
-        <div class="tcard tp"><div class="tn">止盈 TP2</div><div class="tv">${fmt(tp2)}</div><div class="ts">${tp2R} | R:R 1:${rr2}</div></div>
+        <div class="tcard entry"><div class="tn">建议入场</div><div class="tv">${fmt(p.entry)}</div><div class="ts">${p.entryR}</div></div>
+        <div class="tcard sl"><div class="tn">止损 SL</div><div class="tv">${fmt(p.sl)}</div><div class="ts">${p.slR} | 风险${fmt(p.risk)}pt</div></div>
+        <div class="tcard tp"><div class="tn">止盈 TP1</div><div class="tv">${fmt(p.tp1)}</div><div class="ts">${p.tp1R} | R:R 1:${p.rr1}</div></div>
+        <div class="tcard tp"><div class="tn">止盈 TP2</div><div class="tv">${fmt(p.tp2)}</div><div class="ts">${p.tp2R} | R:R 1:${p.rr2}</div></div>
       </div>
-      <div class="rr-bar"><div class="rs" style="width:${rp}%"></div><div class="rw" style="width:${100-rp}%"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:3px"><span>🔴 风险${fmt(risk)}pt</span><span>🟢 TP1:${fmt(r1)}pt(1:${rr1}) | TP2:${fmt(r2)}pt(1:${rr2})</span></div>
-      <div style="font-size:10px;color:var(--muted);margin-top:8px;padding:6px 8px;background:rgba(240,180,41,.05);border-radius:5px">⚠️ 以上为参考方案，实际入场请等价格行为确认（测试关键位后出现反转K线）再执行。</div></div>`;
-    trEl.style.display='block';
-    lastAnalysis={...lastAnalysis,entry,sl,tp1,tp2,rr1,rr2,risk,r1,r2,isBuy,entryR,slR,tp1R,tp2R,fmt};
-  } else trEl.style.display='none';
+      <div class="rr-bar"><div class="rs" style="width:${p.rp}%"></div><div class="rw" style="width:${100-p.rp}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:3px"><span>🔴 风险${fmt(p.risk)}pt</span><span>🟢 TP1:${fmt(p.r1)}pt(1:${p.rr1}) | TP2:${fmt(p.r2)}pt(1:${p.rr2})</span></div>
+    </div>`;
+  }
+  const biasNote=bias==='neutral'
+    ?'目前判断为中性/横盘，方向未明，两个方案都只作参考价位，请等突破确认后再择一执行。'
+    :`系统判断偏${bias==='bull'?'多':'空'}，以下优先看${bias==='bull'?'做多':'做空'}方案；但行情不一定按分析走，${bias==='bull'?'做空':'做多'}方案也一并列出备用，若价格走向相反可直接切换。`;
+  const primary=bias==='bear'?planBear:planBull; // neutral 时默认仍以多方案排前面，但两个都标注为参考
+  const secondary=bias==='bear'?planBull:planBear;
+  trEl.innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;padding:8px 10px;background:rgba(240,180,41,.06);border-radius:6px">🧭 ${biasNote}</div>
+    ${planCard(primary,bias==='neutral'?'参考':'主要方向',bias==='neutral'?'ref':'primary')}
+    ${planCard(secondary,bias==='neutral'?'参考':'反向备用',bias==='neutral'?'ref':'secondary')}
+    <div style="font-size:10px;color:var(--muted);margin-top:4px;padding:6px 8px;background:rgba(240,180,41,.05);border-radius:5px">⚠️ 以上为参考方案，实际入场请等价格行为确认（测试关键位后出现反转K线）再执行，不要同时双向持仓。</div>`;
+  trEl.style.display='block';
+  lastAnalysis={...lastAnalysis,planBull,planBear,fmt,
+    entry:primary.entry,sl:primary.sl,tp1:primary.tp1,tp2:primary.tp2,rr1:primary.rr1,rr2:primary.rr2,risk:primary.risk,r1:primary.r1,r2:primary.r2,isBuy:primary.isBuy,entryR:primary.entryR,slR:primary.slR,tp1R:primary.tp1R,tp2R:primary.tp2R};
 
   // Scenarios
   const sc=[];
@@ -988,7 +1006,7 @@ VP 形态：${a.shape}形
   }
   p+=`\n\n【今日数据】\n今日开盘：${fmt(a.open)}`;
   if(!isNaN(a.tibh)&&!isNaN(a.tibl))p+=`\n今日 IB：${fmt(a.tibl)} – ${fmt(a.tibh)}`;
-  if(a.entry)p+=`\n\n【逻辑系统推算的入场方案】\n方向：${a.isBuy?'做多':'做空'}\n入场：${fmt(a.entry)}（${a.entryR}）\n止损：${fmt(a.sl)}（风险${fmt(a.risk)}pt）\n TP1：${fmt(a.tp1)}（${a.tp1R}，R:R 1:${a.rr1}）\nTP2：${fmt(a.tp2)}（${a.tp2R}，R:R 1:${a.rr2}）`;
+  if(a.planBull&&a.planBear)p+=`\n\n【逻辑系统推算的多空双方案】\n📈做多：入场${fmt(a.planBull.entry)}（${a.planBull.entryR}）止损${fmt(a.planBull.sl)}（${a.planBull.slR}）TP1 ${fmt(a.planBull.tp1)}(1:${a.planBull.rr1}) TP2 ${fmt(a.planBull.tp2)}(1:${a.planBull.rr2})\n📉做空：入场${fmt(a.planBear.entry)}（${a.planBear.entryR}）止损${fmt(a.planBear.sl)}（${a.planBear.slR}）TP1 ${fmt(a.planBear.tp1)}(1:${a.planBear.rr1}) TP2 ${fmt(a.planBear.tp2)}(1:${a.planBear.rr2})\n（系统偏向：${a.isBuy?'做多':'做空'}为主要方向，另一方案备用，行情不一定按分析走）`;
   p+=`\n\n请提供：
 1. 市场结构分析（基于VP/MP数据）
 2. 周线与今日框架的协同/冲突分析

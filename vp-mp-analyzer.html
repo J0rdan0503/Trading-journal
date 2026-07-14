@@ -213,7 +213,6 @@ select option{background:var(--panel);}
 </div>
 <div class="nav-row">
   <a href="index.html" class="back-link"><span>← 返回交易復盤</span><small>TradeLog</small></a>
-  <a href="vp-dashboard.html" class="back-link vpd"><span>📈 VP 統計儀表板</span><small>BTC/XAU</small></a>
 </div>
 <div class="inst-row" id="instRow">
   <div class="inst-btn active" data-inst="GOLD">🥇 Gold</div>
@@ -1213,6 +1212,85 @@ if(savedUid){
 document.querySelectorAll('#instRow .inst-btn').forEach(b=>b.addEventListener('click',()=>{
   setTimeout(()=>{if(uid)loadWeekly();},120);
 }));
+
+// ===== 昨日/今日数据 本地保存 + 每日00:00自动清除 =====
+const DAILY_KEY='vpmp_daily_v1';
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const DAILY_FIELD_IDS=['vah','val','poc','mpvah','mpval','mpoc','ibh','ibl','closePos','open','tibh','tibl'];
+const DAILY_SHAPE_IDS=['vpShape','openType','openTypeDir'];
+
+function saveDailyData(){
+  const fields={};
+  DAILY_FIELD_IDS.forEach(id=>{const el=document.getElementById(id);if(el)fields[id]=el.value;});
+  const shapes={};
+  DAILY_SHAPE_IDS.forEach(id=>{const el=document.querySelector('#'+id+' .sbtn.active');if(el)shapes[id]=el.dataset.val;});
+  const sps=spStore.map(sid=>({h:document.getElementById(sid+'h')?.value||'',l:document.getElementById(sid+'l')?.value||'',dir:document.getElementById(sid+'dir')?.value||'above'}));
+  const data={date:todayStr(),inst:currentInst,fields,shapes,sps};
+  try{localStorage.setItem(DAILY_KEY,JSON.stringify(data));}catch(e){}
+}
+
+function restoreDailyData(){
+  let raw;
+  try{raw=localStorage.getItem(DAILY_KEY);}catch(e){return;}
+  if(!raw)return;
+  let data;
+  try{data=JSON.parse(raw);}catch(e){return;}
+  if(data.date!==todayStr()){
+    try{localStorage.removeItem(DAILY_KEY);}catch(e){}
+    return; // 跨日了，昨日/今日数据自动清除，不还原
+  }
+  if(data.inst&&data.inst!==currentInst){
+    const btn=document.querySelector('#instRow .inst-btn[data-inst="'+data.inst+'"]');
+    if(btn)btn.click();
+  }
+  if(data.fields)Object.keys(data.fields).forEach(id=>{const el=document.getElementById(id);if(el)el.value=data.fields[id];});
+  if(data.shapes)Object.keys(data.shapes).forEach(id=>setShape(id,data.shapes[id]));
+  if(data.sps&&data.sps.length){
+    data.sps.forEach(sp=>{
+      if(spStore.length>=3)return;
+      addSP('spList','spAddBtn',spStore);
+      const sid=spStore[spStore.length-1];
+      const hEl=document.getElementById(sid+'h'),lEl=document.getElementById(sid+'l'),dEl=document.getElementById(sid+'dir');
+      if(hEl)hEl.value=sp.h; if(lEl)lEl.value=sp.l; if(dEl)dEl.value=sp.dir;
+    });
+  }
+  calcIB&&calcIB('ibh','ibl','ibBadge');
+  calcTodayIB();
+  onVPInput&&onVPInput();
+  showDailyRestoreBadge();
+}
+
+function showDailyRestoreBadge(){
+  const bar=document.querySelector('.nav-row');
+  if(!bar||document.getElementById('dailyRestoreTag'))return;
+  const tag=document.createElement('span');
+  tag.id='dailyRestoreTag';
+  tag.style.cssText='font-size:10px;color:var(--gold-dim);padding:6px 10px;';
+  tag.textContent='📌 已还原今日已填数据（每日00:00自动清除）';
+  bar.appendChild(tag);
+}
+
+// 页面开着跨过午夜时，自动清除并重置（不会保留到隔天）
+let dailyCheckDate=todayStr();
+setInterval(()=>{
+  const now=todayStr();
+  if(now!==dailyCheckDate){
+    dailyCheckDate=now;
+    try{localStorage.removeItem(DAILY_KEY);}catch(e){}
+    location.reload();
+  }
+},60000);
+
+document.addEventListener('input',e=>{
+  if(DAILY_FIELD_IDS.includes(e.target.id))saveDailyData();
+});
+document.addEventListener('change',e=>{
+  if(e.target.tagName==='SELECT'||e.target.classList?.contains('sbtn'))saveDailyData();
+});
+document.addEventListener('click',e=>{
+  if(e.target.classList?.contains('sbtn')||e.target.id==='spAddBtn'||e.target.classList?.contains('sp-del'))setTimeout(saveDailyData,50);
+});
+restoreDailyData();
 
 </script>
 </body>

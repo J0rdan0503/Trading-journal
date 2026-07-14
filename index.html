@@ -382,6 +382,10 @@ canvas{display:block;width:100%!important}
         <div class="form-row"><label class="form-lbl">倉位（手）</label><input type="number" id="f-lot" value="0.01" step="0.01"></div>
       </div>
       <div class="form-row"><label class="form-lbl">淨利潤 (USD) — 未平倉可留空，之後編輯補上</label><input type="number" id="f-pnl" placeholder="獲利正數 / 虧損負數" step="0.01"></div>
+      <div class="two-col">
+        <div class="form-row"><label class="form-lbl">手續費 Commission（選填，通常為負數，加密貨幣開+平各一筆可合計填入）</label><input type="number" id="f-commission" placeholder="例：-1.20" step="0.01"></div>
+        <div class="form-row"><label class="form-lbl">庫存費 Swap（選填，隔夜利息）</label><input type="number" id="f-swap" placeholder="例：-0.50" step="0.01"></div>
+      </div>
     </div>
     <div class="form-section">
       <div class="form-row">
@@ -565,6 +569,7 @@ let chartPnl=null,chartSes=null;
 
 function fmt(n){return(Number(n)>=0?'+':'')+Number(n).toFixed(2)}
 function fmtDate(s){if(!s)return'';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('zh-TW',{month:'short',day:'numeric'})}
+function netAmt(t){return Number(t.pnl||0)+Number(t.commission||0)+Number(t.swap||0);}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function acctKey(acctId){return userId+'_'+acctId}
 
@@ -661,10 +666,10 @@ function renderHome(){
   const cap=userSettings.capital[curAcctId]||0;
   const curAcctObj=userSettings.accounts.find(a=>a.id===curAcctId);
   const curr=(curAcctObj&&curAcctObj.currency)||'USD';
-  const totalPnl=trades.reduce((a,t)=>a+Number(t.pnl),0);
+  const totalPnl=trades.reduce((a,t)=>a+netAmt(t),0);
   const netFlow=getNetFlow(curAcctId);
   const balance=cap+totalPnl+netFlow;
-  const wins=trades.filter(t=>Number(t.pnl)>0);const losses=trades.filter(t=>Number(t.pnl)<0);
+  const wins=trades.filter(t=>netAmt(t)>0);const losses=trades.filter(t=>netAmt(t)<0);
   const wr=trades.length?(wins.length/trades.length*100).toFixed(1):0;
   const pct=cap?(totalPnl/cap*100).toFixed(2):null;const pc=totalPnl>=0?'var(--green)':'var(--red)';
   document.getElementById('h-content').innerHTML=`
@@ -716,20 +721,12 @@ function renderHome(){
     </div>
     <div class="section-title">分析工具</div>
     <div class="tools-section">
-      <div class="tools-row">
+      <div class="tools-row" style="grid-template-columns:1fr">
         <a href="vp-mp-analyzer.html" class="tool-card tc-vpa">
           <div class="tool-icon">📊</div>
           <div class="tool-text">
             <div class="tool-name">VP + MP 分析器</div>
             <div class="tool-sub">多框架 · 自動推算 · AI提示詞</div>
-          </div>
-          <div class="tool-arr">›</div>
-        </a>
-        <a href="vp-dashboard.html" class="tool-card tc-vpd">
-          <div class="tool-icon">📈</div>
-          <div class="tool-text">
-            <div class="tool-name">VP 統計儀表板</div>
-            <div class="tool-sub">BTC · XAU · AI深度分析</div>
           </div>
           <div class="tool-arr">›</div>
         </a>
@@ -808,11 +805,11 @@ function renderLog(){
 }
 function tradeCard(t){
   const isOpen=t.pnl===null||t.pnl===undefined;
-  const pos=Number(t.pnl)>=0;
+  const pos=netAmt(t)>=0;
   return`<div class="trade-item ${t.direction==='BUY'?'buy-item':'sell-item'}" onclick="openDetail(${t.id})">
     <div class="trade-badge ${t.direction==='BUY'?'badge-buy':'badge-sell'}">${t.direction}</div>
     <div class="trade-info"><div class="trade-name">${t.symbol||'—'}${isOpen?' <span style="font-size:9px;color:var(--gold);border:1px solid rgba(255,215,0,.3);background:rgba(255,215,0,.08);border-radius:6px;padding:1px 5px;margin-left:4px;vertical-align:middle">持倉中</span>':''}</div><div class="trade-meta">${t.session||''}${t.trade_time?' '+t.trade_time:''}${t.exit_reason?' · '+t.exit_reason:''}</div></div>
-    <div class="trade-right"><div class="trade-pnl ${isOpen?'':(pos?'pnl-pos':'pnl-neg')}" style="${isOpen?'color:var(--muted2)':''}">${isOpen?'待更新':fmt(t.pnl)}</div><div class="trade-date">${fmtDate(t.date)}</div></div>
+    <div class="trade-right"><div class="trade-pnl ${isOpen?'':(pos?'pnl-pos':'pnl-neg')}" style="${isOpen?'color:var(--muted2)':''}">${isOpen?'待更新':fmt(netAmt(t))}</div><div class="trade-date">${fmtDate(t.date)}</div></div>
   </div>`;
 }
 
@@ -821,13 +818,21 @@ function openDetail(id){
   document.getElementById('d-title').textContent=(t.symbol||'—')+' · '+t.direction;
   document.getElementById('d-sub').textContent=fmtDate(t.date)+(t.trade_time?' '+t.trade_time:'')+(t.session?' · '+t.session:'');
   const isOpen=t.pnl===null||t.pnl===undefined;
-  const pos=Number(t.pnl)>=0;const dc=t.direction==='BUY'?'var(--green)':'var(--red)';
+  const pos=netAmt(t)>=0;const dc=t.direction==='BUY'?'var(--green)':'var(--red)';
   const rows=[['品種',t.symbol||'—'],['方向',`<span style="color:${dc};font-weight:800">${t.direction}</span>`],['時段',t.session||'—'],['時間',t.trade_time||'—'],['開倉價',t.entry_price||'—'],['止盈 TP',t.tp||'—'],['止損 SL',t.sl||'—'],['出場價',t.exit_price||'—'],['倉位',(t.lot||0)+' 手'],['出場理由',t.exit_reason||'尚未設定']];
   let html='<div class="detail-grid">'+rows.map(([l,v])=>`<div class="detail-row"><div class="detail-lbl">${l}</div><div class="detail-val">${v}</div></div>`).join('')+'</div>';
   if(isOpen){
     html+=`<div class="divider"></div><div class="detail-row"><div class="detail-lbl">狀態</div><div class="detail-val" style="font-size:18px;font-weight:800;color:var(--gold)">持倉中 — 尚未結算</div></div>`;
   }else{
-    html+=`<div class="divider"></div><div class="detail-row"><div class="detail-lbl">淨利潤</div><div class="detail-val" style="font-size:24px;font-weight:900;color:${pos?'var(--green)':'var(--red)'}">${fmt(t.pnl)} USD</div></div>`;
+    const hasFees=(t.commission!=null&&Number(t.commission)!==0)||(t.swap!=null&&Number(t.swap)!==0);
+    html+=`<div class="divider"></div><div class="detail-row"><div class="detail-lbl">淨利潤（含手續費/庫存費）</div><div class="detail-val" style="font-size:24px;font-weight:900;color:${pos?'var(--green)':'var(--red)'}">${fmt(netAmt(t))} USD</div></div>`;
+    if(hasFees){
+      html+=`<div class="detail-grid" style="margin-top:8px">
+        <div class="detail-row"><div class="detail-lbl">交易利潤</div><div class="detail-val">${fmt(t.pnl)}</div></div>
+        <div class="detail-row"><div class="detail-lbl">手續費</div><div class="detail-val">${t.commission!=null?fmt(t.commission):'—'}</div></div>
+        <div class="detail-row"><div class="detail-lbl">庫存費</div><div class="detail-val">${t.swap!=null?fmt(t.swap):'—'}</div></div>
+      </div>`;
+    }
   }
   if(t.note)html+=`<div class="divider"></div><div class="detail-row"><div class="detail-lbl">交易心得</div><div class="detail-val" style="line-height:1.7;font-size:14px;color:var(--muted2)">${t.note}</div></div>`;
   html+=`<div class="divider"></div>
@@ -863,6 +868,8 @@ function resetForm(t){
     document.getElementById('f-exit').value=t.exit_price??'';
     document.getElementById('f-lot').value=t.lot??0.01;
     document.getElementById('f-pnl').value=t.pnl??'';
+    document.getElementById('f-commission').value=t.commission??'';
+    document.getElementById('f-swap').value=t.swap??'';
     document.getElementById('f-note').value=t.note||'';
     setDir(t.direction||'BUY');
     selExit=t.exit_reason||'';
@@ -882,7 +889,7 @@ function resetForm(t){
     document.getElementById('f-date').value=now.toISOString().split('T')[0];
     document.getElementById('f-time').value=now.toTimeString().slice(0,5);
     document.getElementById('f-symbol').value='';document.getElementById('f-session').value='亞盤';
-    ['f-entry','f-tp','f-sl','f-exit','f-pnl','f-other-reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+    ['f-entry','f-tp','f-sl','f-exit','f-pnl','f-commission','f-swap','f-other-reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
     document.getElementById('f-lot').value='0.01';document.getElementById('f-note').value='';
     setDir('BUY');
     const btn=document.getElementById('save-btn');btn.textContent='儲存交易';btn.disabled=false;
@@ -905,10 +912,14 @@ async function saveTrade(){
   if(!entryEl||isNaN(entry)){showToast('請填寫開倉價');return}
   const pnlEl=document.getElementById('f-pnl').value;
   const pnl=pnlEl!==''?parseFloat(pnlEl):null;
+  const commEl=document.getElementById('f-commission').value;
+  const commission=commEl!==''?parseFloat(commEl):null;
+  const swapEl=document.getElementById('f-swap').value;
+  const swap=swapEl!==''?parseFloat(swapEl):null;
   let exitReason=selExit||null;
   if(isOther){const o=document.getElementById('f-other-reason').value.trim();exitReason=o?'其他：'+o:'其他'}
   const btn=document.getElementById('save-btn');btn.textContent=editingId?'更新中…':'儲存中…';btn.disabled=true;
-  const obj={account_id:acctKey(curAcctId),date:document.getElementById('f-date').value,trade_time:document.getElementById('f-time').value||null,symbol:document.getElementById('f-symbol').value.trim().toUpperCase()||null,session:document.getElementById('f-session').value,trade_type:null,direction:selDir,entry_price:entry,tp:parseFloat(document.getElementById('f-tp').value)||null,sl:parseFloat(document.getElementById('f-sl').value)||null,exit_price:parseFloat(document.getElementById('f-exit').value)||null,lot:parseFloat(document.getElementById('f-lot').value)||0.01,pnl,exit_reason:exitReason,error_class:null,note:document.getElementById('f-note').value.trim()||null};
+  const obj={account_id:acctKey(curAcctId),date:document.getElementById('f-date').value,trade_time:document.getElementById('f-time').value||null,symbol:document.getElementById('f-symbol').value.trim().toUpperCase()||null,session:document.getElementById('f-session').value,trade_type:null,direction:selDir,entry_price:entry,tp:parseFloat(document.getElementById('f-tp').value)||null,sl:parseFloat(document.getElementById('f-sl').value)||null,exit_price:parseFloat(document.getElementById('f-exit').value)||null,lot:parseFloat(document.getElementById('f-lot').value)||0.01,pnl,commission,swap,exit_reason:exitReason,error_class:null,note:document.getElementById('f-note').value.trim()||null};
   try{
     if(editingId){
       const updated=await apiPatch(editingId,obj);
@@ -944,16 +955,16 @@ function filterByPeriod(list){
 function renderStats(){
   const periodTrades=filterByPeriod(trades);
   const closed=periodTrades.filter(t=>t.pnl!==null&&t.pnl!==undefined);
-  const wins=closed.filter(t=>Number(t.pnl)>0);const losses=closed.filter(t=>Number(t.pnl)<0);
+  const wins=closed.filter(t=>netAmt(t)>0);const losses=closed.filter(t=>netAmt(t)<0);
   const openCount=periodTrades.length-closed.length;
   const wr=closed.length?(wins.length/closed.length*100).toFixed(1):0;
-  const avgW=wins.length?wins.reduce((a,t)=>a+Number(t.pnl),0)/wins.length:0;
-  const avgL=losses.length?Math.abs(losses.reduce((a,t)=>a+Number(t.pnl),0)/losses.length):0;
+  const avgW=wins.length?wins.reduce((a,t)=>a+netAmt(t),0)/wins.length:0;
+  const avgL=losses.length?Math.abs(losses.reduce((a,t)=>a+netAmt(t),0)/losses.length):0;
   const rr=(avgW&&avgL)?(avgW/avgL).toFixed(2):'—';
   const exitMap={};closed.forEach(t=>{if(t.exit_reason)exitMap[t.exit_reason]=(exitMap[t.exit_reason]||0)+1});
   const exitArr=Object.entries(exitMap).sort((a,b)=>b[1]-a[1]);const maxE=exitArr.length?exitArr[0][1]:1;
   const sesMap={亞盤:[0,0],歐盤:[0,0],美盤:[0,0]};
-  closed.forEach(t=>{if(sesMap[t.session]){if(Number(t.pnl)>0)sesMap[t.session][0]++;else if(Number(t.pnl)<0)sesMap[t.session][1]++}});
+  closed.forEach(t=>{if(sesMap[t.session]){if(netAmt(t)>0)sesMap[t.session][0]++;else if(netAmt(t)<0)sesMap[t.session][1]++}});
   const periodLabels={all:'全部',week:'本週',month:'本月',year:'本年'};
   const acctObj=getAcctObj(curAcctId);
   const allTx=(acctObj&&acctObj.tx)||[];
@@ -987,7 +998,7 @@ function renderStats(){
   setTimeout(()=>{
     if(typeof Chart==='undefined')return;
     const sorted=[...closed].sort((a,b)=>(a.date+(a.trade_time||''))<(b.date+(b.trade_time||''))?-1:1);
-    let cum=0;const cumData=sorted.map(t=>{cum+=Number(t.pnl);return+cum.toFixed(2)});
+    let cum=0;const cumData=sorted.map(t=>{cum+=netAmt(t);return+cum.toFixed(2)});
     const pc=document.getElementById('c-pnl');
     if(chartPnl){chartPnl.destroy();chartPnl=null}
     if(pc)chartPnl=new Chart(pc,{type:'line',data:{labels:sorted.map(t=>fmtDate(t.date)),datasets:[{data:cumData,borderColor:'#00E5FF',backgroundColor:'rgba(0,229,255,0.06)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#00E5FF',borderWidth:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4A6080',font:{size:10},maxTicksLimit:6},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#4A6080',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
@@ -1057,7 +1068,7 @@ function ibSetDir(d){
 }
 function ibPrefillBalance(){
   const cap=userSettings.capital&&userSettings.capital[curAcctId];
-  const totalPnl=trades.reduce((a,t)=>a+(t.pnl!=null?Number(t.pnl):0),0);
+  const totalPnl=trades.reduce((a,t)=>a+(t.pnl!=null?netAmt(t):0),0);
   const netFlow=getNetFlow(curAcctId);
   const el=document.getElementById('ib-balance');
   if(el&&cap){

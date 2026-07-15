@@ -884,39 +884,35 @@ function analyze(){
   const trEl=document.getElementById('tradeResult');
   function buildPlan(dir){
     const isBuy=dir==='bull';
-    let entry,sl,tp1,tp2,entryR,slR,tp1R,tp2R;
+    const entry=cur; // 永远以现价作为入场价，不强迫等待回调到特定关卡
+    const entryR=(usingCur?'现价':'开盘价')+'直接'+(isBuy?'做多':'做空')+'，无需等待回调';
+    let sl,tp1,tp2,slR,tp1R,tp2R;
+
+    // 结构关卡（VP VAL/POC/VAH）由低到高排列
+    const levels=[{v:val,label:'VP VAL'},{v:poc,label:'VP POC'},{v:vah,label:'VP VAH'}].sort((a,b)=>a.v-b.v);
+    const below=levels.filter(l=>l.v<entry); // 现价下方的关卡，由低到高
+    const above=levels.filter(l=>l.v>entry); // 现价上方的关卡，由低到高
+
     if(isBuy){
-      if(cur>vah){
-        // 突破确认：回踩VAH入多，止损POC，止盈延伸
-        entry=vah; entryR='回踩昨VP VAH入多（突破确认）';
-        sl=poc-(vaR*0.05); slR='VP POC下方（跌破POC视为假突破）';
-        if(!isNaN(ibh)&&ibh>entry){ tp1=ibh; tp1R='昨IB High'; }
-        else { tp1=entry+vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
-        tp2=!isNaN(w_vah)&&w_vah>tp1?w_vah:tp1+vaR*0.8; tp2R=!isNaN(w_vah)&&w_vah>tp1?'周线VP VAH':'延伸目标';
-      } else {
-        // 价值区内/下方：POC支撑做多，目标区间轮动至VAH
-        entry=poc; entryR='昨VP POC支撑入多（区间回归）';
-        sl=val-(vaR*0.05); slR='VP VAL下方（跌破价值区视为结构破坏）';
-        tp1=vah; tp1R='VP VAH（价值区上沿，区间轮动目标）';
-        if(!isNaN(ibh)&&ibh>tp1){ tp2=ibh; tp2R='昨IB High（延伸）'; }
-        else { tp2=tp1+vaR*0.4; tp2R='VA外延伸'; }
-      }
+      // 止损：现价下方最近的关卡
+      if(below.length){ const nb=below[below.length-1]; sl=nb.v-(vaR*0.05); slR=nb.label+'下方'; }
+      else { sl=entry-(vaR*0.25); slR='现价下方0.25×VA（下方已无VP关卡参考，注意风险可能被低估）'; }
+      // 止盈：现价上方最近两个关卡，不够则用IB/延伸补
+      if(above.length>=1){ tp1=above[0].v; tp1R=above[0].label; }
+      else { tp1=entry+vaR*0.5; tp1R='延伸目标(0.5×VA)'; }
+      if(above.length>=2){ tp2=above[1].v; tp2R=above[1].label; }
+      else if(!isNaN(ibh)&&ibh>tp1){ tp2=ibh; tp2R='昨IB High'; }
+      else { tp2=tp1+vaR*0.5; tp2R='延伸目标'; }
     } else {
-      if(cur<val){
-        // 跌破确认：反弹VAL入空，止损POC，止盈延伸
-        entry=val; entryR='反弹昨VP VAL入空（跌破确认）';
-        sl=poc+(vaR*0.05); slR='VP POC上方（收回POC视为假跌破）';
-        if(!isNaN(ibl)&&ibl<entry){ tp1=ibl; tp1R='昨IB Low'; }
-        else { tp1=entry-vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
-        tp2=!isNaN(w_val)&&w_val<tp1?w_val:tp1-vaR*0.8; tp2R=!isNaN(w_val)&&w_val<tp1?'周线VP VAL':'延伸目标';
-      } else {
-        // 价值区内/上方：POC阻力做空，目标区间轮动至VAL
-        entry=poc; entryR='昨VP POC阻力入空（区间回归）';
-        sl=vah+(vaR*0.05); slR='VP VAH上方（突破价值区视为结构破坏）';
-        tp1=val; tp1R='VP VAL（价值区下沿，区间轮动目标）';
-        if(!isNaN(ibl)&&ibl<tp1){ tp2=ibl; tp2R='昨IB Low（延伸）'; }
-        else { tp2=tp1-vaR*0.4; tp2R='VA外延伸'; }
-      }
+      // 止损：现价上方最近的关卡
+      if(above.length){ const na=above[0]; sl=na.v+(vaR*0.05); slR=na.label+'上方'; }
+      else { sl=entry+(vaR*0.25); slR='现价上方0.25×VA（上方已无VP关卡参考，注意风险可能被低估）'; }
+      // 止盈：现价下方最近两个关卡，不够则用IB/延伸补
+      if(below.length>=1){ tp1=below[below.length-1].v; tp1R=below[below.length-1].label; }
+      else { tp1=entry-vaR*0.5; tp1R='延伸目标(0.5×VA)'; }
+      if(below.length>=2){ tp2=below[below.length-2].v; tp2R=below[below.length-2].label; }
+      else if(!isNaN(ibl)&&ibl<tp1){ tp2=ibl; tp2R='昨IB Low'; }
+      else { tp2=tp1-vaR*0.5; tp2R='延伸目标'; }
     }
     const risk=Math.abs(entry-sl),r1=Math.abs(tp1-entry),r2=Math.abs(tp2-entry);
     const rr1=(r1/risk).toFixed(2),rr2=(r2/risk).toFixed(2),rp=risk/(risk+r1)*100;

@@ -886,17 +886,37 @@ function analyze(){
     const isBuy=dir==='bull';
     let entry,sl,tp1,tp2,entryR,slR,tp1R,tp2R;
     if(isBuy){
-      entry=cur>vah?vah:poc; entryR=cur>vah?'回踩昨VP VAH入多':'昨VP POC支撑入多';
-      sl=cur>vah?poc-(vaR*0.05):val-(vaR*0.05); slR=cur>vah?'VP POC下方':'VP VAL下方';
-      if(!isNaN(ibh)&&ibh>entry){ tp1=ibh; tp1R='昨IB High'; }
-      else { tp1=entry+vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
-      tp2=!isNaN(w_vah)&&w_vah>tp1?w_vah:tp1+vaR*0.8; tp2R=!isNaN(w_vah)&&w_vah>tp1?'周线VP VAH':'延伸目标';
+      if(cur>vah){
+        // 突破确认：回踩VAH入多，止损POC，止盈延伸
+        entry=vah; entryR='回踩昨VP VAH入多（突破确认）';
+        sl=poc-(vaR*0.05); slR='VP POC下方（跌破POC视为假突破）';
+        if(!isNaN(ibh)&&ibh>entry){ tp1=ibh; tp1R='昨IB High'; }
+        else { tp1=entry+vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
+        tp2=!isNaN(w_vah)&&w_vah>tp1?w_vah:tp1+vaR*0.8; tp2R=!isNaN(w_vah)&&w_vah>tp1?'周线VP VAH':'延伸目标';
+      } else {
+        // 价值区内/下方：POC支撑做多，目标区间轮动至VAH
+        entry=poc; entryR='昨VP POC支撑入多（区间回归）';
+        sl=val-(vaR*0.05); slR='VP VAL下方（跌破价值区视为结构破坏）';
+        tp1=vah; tp1R='VP VAH（价值区上沿，区间轮动目标）';
+        if(!isNaN(ibh)&&ibh>tp1){ tp2=ibh; tp2R='昨IB High（延伸）'; }
+        else { tp2=tp1+vaR*0.4; tp2R='VA外延伸'; }
+      }
     } else {
-      entry=cur<val?val:poc; entryR=cur<val?'反弹昨VP VAL入空':'昨VP POC阻力入空';
-      sl=cur<val?poc+(vaR*0.05):vah+(vaR*0.05); slR=cur<val?'VP POC上方':'VP VAH上方';
-      if(!isNaN(ibl)&&ibl<entry){ tp1=ibl; tp1R='昨IB Low'; }
-      else { tp1=entry-vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
-      tp2=!isNaN(w_val)&&w_val<tp1?w_val:tp1-vaR*0.8; tp2R=!isNaN(w_val)&&w_val<tp1?'周线VP VAL':'延伸目标';
+      if(cur<val){
+        // 跌破确认：反弹VAL入空，止损POC，止盈延伸
+        entry=val; entryR='反弹昨VP VAL入空（跌破确认）';
+        sl=poc+(vaR*0.05); slR='VP POC上方（收回POC视为假跌破）';
+        if(!isNaN(ibl)&&ibl<entry){ tp1=ibl; tp1R='昨IB Low'; }
+        else { tp1=entry-vaR*0.6; tp1R='VA延伸(0.6×VA)'; }
+        tp2=!isNaN(w_val)&&w_val<tp1?w_val:tp1-vaR*0.8; tp2R=!isNaN(w_val)&&w_val<tp1?'周线VP VAL':'延伸目标';
+      } else {
+        // 价值区内/上方：POC阻力做空，目标区间轮动至VAL
+        entry=poc; entryR='昨VP POC阻力入空（区间回归）';
+        sl=vah+(vaR*0.05); slR='VP VAH上方（突破价值区视为结构破坏）';
+        tp1=val; tp1R='VP VAL（价值区下沿，区间轮动目标）';
+        if(!isNaN(ibl)&&ibl<tp1){ tp2=ibl; tp2R='昨IB Low（延伸）'; }
+        else { tp2=tp1-vaR*0.4; tp2R='VA外延伸'; }
+      }
     }
     const risk=Math.abs(entry-sl),r1=Math.abs(tp1-entry),r2=Math.abs(tp2-entry);
     const rr1=(r1/risk).toFixed(2),rr2=(r2/risk).toFixed(2),rp=risk/(risk+r1)*100;
@@ -904,8 +924,10 @@ function analyze(){
   }
   const planBull=buildPlan('bull'), planBear=buildPlan('bear');
   function planCard(p,tagLabel,tagClass){
+    const lowRR=parseFloat(p.rr1)<0.8;
     return `<div class="trade-result" style="margin-bottom:10px">
       <div class="trade-title">${p.isBuy?'📈 做多方案':'📉 做空方案'} <span class="plan-tag ${tagClass}">${tagLabel}</span></div>
+      ${lowRR?`<div style="font-size:10px;color:var(--bear);background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.25);border-radius:6px;padding:6px 8px;margin-bottom:8px">⚠️ TP1风报比仅1:${p.rr1}，偏低（VP结构本身不对称所致），建议直接看TP2目标或降低仓位</div>`:''}
       <div class="trade-grid">
         <div class="tcard entry"><div class="tn">建议入场</div><div class="tv">${fmt(p.entry)}</div><div class="ts">${p.entryR}</div></div>
         <div class="tcard sl"><div class="tn">止损 SL</div><div class="tv">${fmt(p.sl)}</div><div class="ts">${p.slR} | 风险${fmt(p.risk)}pt</div></div>

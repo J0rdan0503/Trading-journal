@@ -236,11 +236,11 @@ select option{background:var(--panel);}
     <div class="field">
       <label>昨日K线 <span class="opt">自动识别形态</span></label>
       <div class="irow" style="margin-bottom:6px">
+        <div class="field"><input type="number" id="yopen" placeholder="昨开" step="0.01" oninput="onVPInput()"></div>
         <div class="field"><input type="number" id="yhigh" placeholder="昨高" step="0.01" oninput="onVPInput()"></div>
-        <div class="field"><input type="number" id="ylow" placeholder="昨低" step="0.01" oninput="onVPInput()"></div>
       </div>
       <div class="irow">
-        <div class="field"><input type="number" id="yopen" placeholder="昨开" step="0.01" oninput="onVPInput()"></div>
+        <div class="field"><input type="number" id="ylow" placeholder="昨低" step="0.01" oninput="onVPInput()"></div>
         <div class="field"><input type="number" id="yclose" placeholder="昨收" step="0.01" oninput="onVPInput()"></div>
       </div>
     </div>
@@ -1224,7 +1224,7 @@ document.querySelectorAll('#instRow .inst-btn').forEach(b=>b.addEventListener('c
 // ===== 昨日/今日数据 本地保存 + 每日00:00自动清除 =====
 const DAILY_KEY='vpmp_daily_v1';
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-const DAILY_FIELD_IDS=['vah','val','poc','mpvah','mpval','mpoc','ibh','ibl','closePos','open','tibh','tibl','curPrice'];
+const DAILY_FIELD_IDS=['vah','val','poc','yhigh','ylow','yopen','yclose','mpvah','mpval','mpoc','ibh','ibl','closePos','open','tibh','tibl','curPrice'];
 const DAILY_SHAPE_IDS=['vpShape','openType','openTypeDir'];
 
 function saveDailyData(){

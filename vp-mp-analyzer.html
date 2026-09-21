@@ -225,12 +225,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="period-panel active" id="panel-yearly">
     <div class="vp-card">
       <div class="card-header">
-        <div class="card-title">📅 年線 VP</div>
+        <div class="card-title">📅 年線 VP <span id="y_periodlabel" style="color:var(--muted2);font-weight:400"></span></div>
         <div class="save-row">
           <label class="save-check"><input type="checkbox" id="chk-yearly" onchange="onSaveCheck('yearly')"> 儲存</label>
           <button class="save-btn" onclick="savePeriod('yearly')">💾 保存</button>
           <div class="saved-badge" id="badge-yearly">✓ 已儲存</div>
         </div>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>此數據屬於哪一年 *</label>
+        <input type="number" id="y_year" placeholder="例：2025" min="2000" max="2100" oninput="updatePeriodLabel('y')">
       </div>
       <div class="field-grid">
         <div class="field"><label>VAH</label><input type="number" id="y_vah" step="0.01" oninput="autoDetect('y')"></div>
@@ -262,12 +266,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="period-panel" id="panel-monthly">
     <div class="vp-card">
       <div class="card-header">
-        <div class="card-title">📆 月線 VP</div>
+        <div class="card-title">📆 月線 VP <span id="m_periodlabel" style="color:var(--muted2);font-weight:400"></span></div>
         <div class="save-row">
           <label class="save-check"><input type="checkbox" id="chk-monthly" onchange="onSaveCheck('monthly')"> 儲存</label>
           <button class="save-btn" onclick="savePeriod('monthly')">💾 保存</button>
           <div class="saved-badge" id="badge-monthly">✓ 已儲存</div>
         </div>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>此數據屬於哪個月 *</label>
+        <input type="month" id="m_month" oninput="updatePeriodLabel('m')">
       </div>
       <div class="field-grid">
         <div class="field"><label>VAH</label><input type="number" id="m_vah" step="0.01" oninput="autoDetect('m')"></div>
@@ -299,12 +307,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="period-panel" id="panel-weekly">
     <div class="vp-card">
       <div class="card-header">
-        <div class="card-title">🗓 週線 VP</div>
+        <div class="card-title">🗓 週線 VP <span id="w_periodlabel" style="color:var(--muted2);font-weight:400"></span></div>
         <div class="save-row">
           <label class="save-check"><input type="checkbox" id="chk-weekly" onchange="onSaveCheck('weekly')"> 儲存</label>
           <button class="save-btn" onclick="savePeriod('weekly')">💾 保存</button>
           <div class="saved-badge" id="badge-weekly">✓ 已儲存</div>
         </div>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>選這週內任一天（自動算整週）*</label>
+        <input type="date" id="w_anydate" oninput="updatePeriodLabel('w')">
       </div>
       <div class="field-grid">
         <div class="field"><label>VAH</label><input type="number" id="w_vah" step="0.01" oninput="autoDetect('w')"></div>
@@ -336,12 +348,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="period-panel" id="panel-daily">
     <div class="vp-card">
       <div class="card-header">
-        <div class="card-title">📊 日線 VP（昨日已收盤）</div>
+        <div class="card-title">📊 日線 VP <span id="d_periodlabel" style="color:var(--muted2);font-weight:400"></span></div>
         <div class="save-row">
           <label class="save-check"><input type="checkbox" id="chk-daily" onchange="onSaveCheck('daily')"> 儲存</label>
           <button class="save-btn" onclick="savePeriod('daily')">💾 保存</button>
           <div class="saved-badge" id="badge-daily">✓ 已儲存</div>
         </div>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>此數據屬於哪一天 *</label>
+        <input type="date" id="d_date" oninput="updatePeriodLabel('d')">
       </div>
       <div class="field-grid">
         <div class="field"><label>VAH</label><input type="number" id="d_vah" step="0.01" oninput="autoDetect('d')"></div>
@@ -440,6 +456,11 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
 
     <div class="result-card">
+      <div class="section-label">價位結構圖 <span style="font-weight:400;text-transform:none;font-size:9px;color:var(--muted)">依比例繪製，非K線圖（本工具不記錄逐筆K線數據）</span></div>
+      <div id="levelChartWrap" style="overflow-x:auto"></div>
+    </div>
+
+    <div class="result-card">
       <div class="section-label">關鍵價位匯總</div>
       <div class="levels-grid" id="levelsGrid"></div>
     </div>
@@ -478,7 +499,7 @@ const INST_CFG={
 let sb=null, uid='', curInst='XAUUSD', curPeriod='yearly';
 const shapes={y:'P',m:'D',w:'D',d:'D'};
 const savedPeriods={};
-let shapeHistoryCache={}; // { d: [{date,shape}, ...] }
+let shapeHistoryCache={}; // { y:[...], m:[...], w:[...], d:[...] } each [{date,shape}]
 
 function initSB(){sb=supabase.createClient(SB_URL,SB_KEY)}
 
@@ -527,6 +548,15 @@ async function loadAllPeriods(){
       setF(pk+'_lvn',(row.lvn_levels||[]).join(', '));
       if(row.vp_shape)setShapeSilent(pk,row.vp_shape);
       if(row.shape_history)shapeHistoryCache[pk]=row.shape_history;
+      // restore the explicit period-date picker so you see exactly
+      // which year/month/week/day this saved data belongs to
+      if(row.period_date){
+        if(p==='yearly')setF('y_year',row.period_date.slice(0,4));
+        if(p==='monthly')setF('m_month',row.period_date.slice(0,7));
+        if(p==='weekly')setF('w_anydate',row.period_date);
+        if(p==='daily')setF('d_date',row.period_date);
+      }
+      updatePeriodLabel(pk);
     }
     markSaved(p,true);
   });
@@ -553,18 +583,20 @@ async function savePeriod(period){
     payload.hvn_levels=parseNodes(pk+'_hvn');
     payload.lvn_levels=parseNodes(pk+'_lvn');
     if(period==='daily')payload.close_price=gv('d_close');
-    // shape history tracking (only for daily, most meaningful for day-to-day transition)
-    if(period==='daily'){
-      const today=new Date().toISOString().split('T')[0];
-      let hist=shapeHistoryCache['d']||[];
-      if(!hist.length||hist[hist.length-1].date!==today){
-        hist=[...hist,{date:today,shape:shapes['d']}].slice(-5);
-      }else{
-        hist[hist.length-1].shape=shapes['d'];
-      }
-      payload.shape_history=hist;
-      shapeHistoryCache['d']=hist;
+    // shape history tracking for all 4 static periods (year/month/week/day).
+    // periodKeyDate now comes from the EXPLICIT date the user picked for
+    // this panel (not "today"), so it stays correct even if you skip
+    // days/weeks/months — you just tell it which period this data is for.
+    const periodKeyDate=getPeriodKeyDate(period);
+    payload.period_date=periodKeyDate;
+    let hist=shapeHistoryCache[pk]||[];
+    if(!hist.length||hist[hist.length-1].date!==periodKeyDate){
+      hist=[...hist,{date:periodKeyDate,shape:shapes[pk]}].slice(-8);
+    }else{
+      hist[hist.length-1].shape=shapes[pk];
     }
+    payload.shape_history=hist;
+    shapeHistoryCache[pk]=hist;
   }
   const{error}=await sb.from('vp_levels').upsert(payload,{onConflict:'user_id,instrument,period'});
   if(error){showToast('保存失敗：'+error.message);return}
@@ -581,6 +613,66 @@ function markSaved(period,saved){
 }
 function onSaveCheck(period){if(document.getElementById('chk-'+period).checked)savePeriod(period)}
 function periodLabel(p){return{yearly:'年線',monthly:'月線',weekly:'週線',daily:'日線',live:'Live'}[p]||p}
+// Returns a stable "key date" identifying the current instance of a period,
+// so re-saving the same week/month/year updates that entry instead of
+// appending a new one. Week uses ISO week's Monday; month uses YYYY-MM-01; year uses YYYY-01-01.
+// Uses the EXPLICIT date/period the user picked for that panel, not "today" —
+// this is what makes history correct even if the user skips days/weeks/months.
+function getPeriodKeyDate(period){
+  const now=new Date();
+  if(period==='daily'){
+    const v=document.getElementById('d_date').value;
+    return v||now.toISOString().split('T')[0];
+  }
+  if(period==='weekly'){
+    const v=document.getElementById('w_anydate').value;
+    const base=v?new Date(v+'T00:00:00'):now;
+    const day=base.getDay();
+    const diff=base.getDate()-day+(day===0?-6:1);
+    const monday=new Date(base);monday.setDate(diff);
+    return monday.toISOString().split('T')[0];
+  }
+  if(period==='monthly'){
+    const v=document.getElementById('m_month').value; // "YYYY-MM"
+    return v?v+'-01':(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01');
+  }
+  if(period==='yearly'){
+    const v=document.getElementById('y_year').value;
+    return v?v+'-01-01':(now.getFullYear()+'-01-01');
+  }
+  return now.toISOString().split('T')[0];
+}
+
+// Updates the small label next to each period's title, e.g. "(2025年)",
+// "(2026年08月)", "(9/8–9/14)", "(2026-09-19)" — so it's always visible
+// which exact period this data represents.
+function updatePeriodLabel(pk){
+  const map={y:'yearly',m:'monthly',w:'weekly',d:'daily'};
+  const label=document.getElementById(pk+'_periodlabel');
+  if(!label)return;
+  if(pk==='y'){
+    const y=document.getElementById('y_year').value;
+    label.textContent=y?`（${y}年）`:'（未選年份）';
+  }else if(pk==='m'){
+    const m=document.getElementById('m_month').value;
+    if(m){const[yy,mm]=m.split('-');label.textContent=`（${yy}年${parseInt(mm)}月）`}
+    else label.textContent='（未選月份）';
+  }else if(pk==='w'){
+    const d=document.getElementById('w_anydate').value;
+    if(d){
+      const dt=new Date(d+'T00:00:00');
+      const day=dt.getDay();
+      const diff=dt.getDate()-day+(day===0?-6:1);
+      const mon=new Date(dt);mon.setDate(diff);
+      const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+      const f=x=>`${x.getMonth()+1}/${x.getDate()}`;
+      label.textContent=`（${f(mon)}–${f(sun)}）`;
+    }else label.textContent='（未選週次）';
+  }else if(pk==='d'){
+    const d=document.getElementById('d_date').value;
+    label.textContent=d?`（${d}）`:'（未選日期）';
+  }
+}
 
 // ── HELPERS ────────────────────────────────────────────
 function setF(id,val){const el=document.getElementById(id);if(el&&val!=null&&val!==''&&val!==undefined)el.value=val}
@@ -606,7 +698,20 @@ function setInst(btn){
   document.getElementById('ibBadge').className='ib-badge';
   document.getElementById('resultSection').style.display='none';
   shapeHistoryCache={};
+  fillDefaultPeriodDates();
   if(uid)loadAllPeriods();
+}
+
+// Pre-fills sensible defaults (this year / this month / this week / today)
+// for the date pickers so first-time use isn't blank — user can freely
+// change these to an earlier period if they missed recording it.
+function fillDefaultPeriodDates(){
+  const now=new Date();
+  document.getElementById('y_year').value=now.getFullYear();
+  document.getElementById('m_month').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('w_anydate').value=now.toISOString().split('T')[0];
+  document.getElementById('d_date').value=now.toISOString().split('T')[0];
+  ['y','m','w','d'].forEach(updatePeriodLabel);
 }
 function resetShapeGrid(pk){const g=document.getElementById('shape-'+pk);if(g)g.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'))}
 
@@ -793,28 +898,39 @@ function analyze(){
     else{label='🟡 中等';desc=`各週期 POC 分佈範圍 ${spread.toFixed(dec)}（${spreadPct.toFixed(2)}% of price）→ 一般水平`}
     convHtml+=`<div class="nest-row"><span class="nest-icon">${label.slice(0,2)}</span><span><b>POC ${label.slice(3)}</b>：${desc}</span></div>`;
   }
-  // shape transition (daily)
-  const dHist=shapeHistoryCache['d']||[];
-  if(dHist.length>=2){
-    const prev=dHist[dHist.length-2],cur=dHist[dHist.length-1];
-    const transMap={
-      'b_D':'空頭動能消化，市場企圖企穩',
-      'D_P':'結構轉強，資金開始向上方集中',
-      'P_b':'劇烈反轉，多頭結構瓦解轉為空頭堆積',
-      'b_P':'極端反轉，空頭結構瓦解轉為多頭堆積',
-      'D_b':'結構轉弱，資金開始向下方集中',
-      'P_D':'多頭動能消化，市場企圖回歸均衡',
-      'P_P':'多頭結構延續，趨勢未變',
-      'b_b':'空頭結構延續，趨勢未變',
-      'D_D':'持續均衡狀態',
-      'Thin_D':'單邊行情後進入消化整理',
-      'D_Thin':'均衡結構被打破，進入單邊行情',
-    };
-    const key=prev.shape+'_'+cur.shape;
-    const desc=transMap[key]||`形態由 ${prev.shape} 轉為 ${cur.shape}`;
-    convHtml+=`<div class="nest-row"><span class="nest-icon">🔄</span><span><b>形態轉換</b>：${prev.date} [${prev.shape}] → ${cur.date} [${cur.shape}] — ${desc}</span></div>`;
-  }else{
-    convHtml+=`<div class="nest-row"><span class="nest-icon">ℹ️</span><span>尚無足夠歷史記錄比對形態轉換（需累積至少2天已保存的日線數據）</span></div>`;
+  // shape transition — now checked for all 4 static periods (year/month/week/day)
+  const transMap={
+    'b_D':'空頭動能消化，市場企圖企穩',
+    'D_P':'結構轉強，資金開始向上方集中',
+    'P_b':'劇烈反轉，多頭結構瓦解轉為空頭堆積',
+    'b_P':'極端反轉，空頭結構瓦解轉為多頭堆積',
+    'D_b':'結構轉弱，資金開始向下方集中',
+    'P_D':'多頭動能消化，市場企圖回歸均衡',
+    'P_P':'多頭結構延續，趨勢未變',
+    'b_b':'空頭結構延續，趨勢未變',
+    'D_D':'持續均衡狀態',
+    'Thin_D':'單邊行情後進入消化整理',
+    'D_Thin':'均衡結構被打破，進入單邊行情',
+    'Thin_P':'單邊上漲後轉為多頭堆積，趨勢確立',
+    'Thin_b':'單邊下跌後轉為空頭堆積，趨勢確立',
+    'P_Thin':'多頭均衡被打破，進入單邊行情',
+    'b_Thin':'空頭均衡被打破，進入單邊行情',
+  };
+  const transLabels={y:'年線',m:'月線',w:'週線',d:'日線'};
+  const transUnit={y:'年度',m:'月份',w:'週',d:'日'};
+  let anyTrans=false;
+  ['y','m','w','d'].forEach(pk=>{
+    const hist=shapeHistoryCache[pk]||[];
+    if(hist.length>=2){
+      anyTrans=true;
+      const prev=hist[hist.length-2],cur=hist[hist.length-1];
+      const key=prev.shape+'_'+cur.shape;
+      const desc=transMap[key]||`形態由 ${prev.shape} 轉為 ${cur.shape}`;
+      convHtml+=`<div class="nest-row"><span class="nest-icon">🔄</span><span><b>${transLabels[pk]}形態轉換</b>：上${transUnit[pk]}[${prev.shape}] → 本${transUnit[pk]}[${cur.shape}] — ${desc}</span></div>`;
+    }
+  });
+  if(!anyTrans){
+    convHtml+=`<div class="nest-row"><span class="nest-icon">ℹ️</span><span>尚無足夠歷史記錄比對形態轉換（需在同一週期至少累積2次不同時段的保存記錄，例如「上週」和「本週」都各自保存過一次）</span></div>`;
   }
   document.getElementById('convergeBox').innerHTML=convHtml;
 
@@ -875,6 +991,8 @@ function analyze(){
   const sorted=lvls.filter(l=>l.v!=null).sort((a,b)=>b.v-a.v);
   document.getElementById('levelsGrid').innerHTML=sorted.map(l=>`<div class="lcard ${l.c}"><div class="ln">${l.n}</div><div class="lv">${l.v.toFixed(dec)}</div><div class="lr">${l.r}</div></div>`).join('');
 
+  renderLevelChart(periods,ibh,ibl,refPrice,dec);
+
   // ══ 9. Entry plan ══
   if(periods.d.vah!=null&&periods.d.poc!=null&&periods.d.val!=null&&refPrice!=null){
     const vaR=periods.d.vah-periods.d.val;
@@ -912,9 +1030,107 @@ function analyze(){
   document.getElementById('resultSection').scrollIntoView({behavior:'smooth'});
 }
 
+// ── PRICE STRUCTURE CHART ──────────────────────────────
+// A to-scale vertical map of each period's Value Area + POC, plus the
+// live price and any HVN/LVN nodes you've noted. This is NOT a real
+// candlestick chart — the tool only stores VAH/POC/VAL summaries per
+// period, not tick-by-tick OHLC bars, so a true K-line isn't possible
+// from this data. This gives the same "where do the important levels
+// sit" visual at a glance.
+function renderLevelChart(periods,ibh,ibl,refPrice,dec){
+  const wrap=document.getElementById('levelChartWrap');
+  const lanes=[];
+  const laneDefs=[
+    {key:'y',label:'年',color:'#F0B429'},
+    {key:'m',label:'月',color:'#00E676'},
+    {key:'w',label:'週',color:'#7B61FF'},
+    {key:'d',label:'日',color:'#00E5FF'},
+  ];
+  laneDefs.forEach(ld=>{
+    const P=periods[ld.key];
+    if(P&&P.vah!=null&&P.poc!=null&&P.val!=null)lanes.push({...ld,vah:P.vah,poc:P.poc,val:P.val});
+  });
+  if(ibh!=null&&ibl!=null&&ibh>ibl)lanes.push({key:'ib',label:'IB',color:'#FF9800',vah:ibh,poc:(ibh+ibl)/2,val:ibl,isIB:true});
+
+  if(!lanes.length){
+    wrap.innerHTML='<div style="font-size:11px;color:var(--muted);padding:8px 0">請至少填入一個週期的 VAH/POC/VAL 才能繪製結構圖</div>';
+    return;
+  }
+
+  // collect all values to determine price range (padding 4%)
+  let allVals=[];
+  lanes.forEach(l=>{allVals.push(l.vah,l.val)});
+  if(refPrice!=null)allVals.push(refPrice);
+  // include HVN/LVN nodes (limit to nearest 6 to refPrice to avoid clutter)
+  let nodes=[];
+  laneDefs.forEach(ld=>{
+    const P=periods[ld.key];
+    if(!P)return;
+    (P.hvn||[]).forEach(v=>nodes.push({v,type:'HVN',from:ld.label}));
+    (P.lvn||[]).forEach(v=>nodes.push({v,type:'LVN',from:ld.label}));
+  });
+  if(refPrice!=null)nodes=nodes.sort((a,b)=>Math.abs(a.v-refPrice)-Math.abs(b.v-refPrice));
+  nodes=nodes.slice(0,6);
+  nodes.forEach(n=>allVals.push(n.v));
+
+  const minRaw=Math.min(...allVals),maxRaw=Math.max(...allVals);
+  const pad=(maxRaw-minRaw)*0.06||maxRaw*0.02||1;
+  const minP=minRaw-pad,maxP=maxRaw+pad;
+
+  const chartTop=18,chartHeight=360,laneW=76,laneGap=8,axisW=54,rightMargin=nodes.length?92:16;
+  const chartWidth=axisW+lanes.length*(laneW+laneGap)+rightMargin;
+  const svgH=chartTop+chartHeight+34;
+
+  const y2p=y=>maxP-(y-chartTop)/chartHeight*(maxP-minP);
+  const p2y=p=>chartTop+(maxP-p)/(maxP-minP)*chartHeight;
+
+  let svg=`<svg width="${chartWidth}" height="${svgH}" viewBox="0 0 ${chartWidth} ${svgH}" style="min-width:${chartWidth}px;font-family:Arial,sans-serif">`;
+
+  // axis gridlines: max / mid / min price labels
+  [maxP-pad*0.3, (maxP+minP)/2, minP+pad*0.3].forEach(pr=>{
+    const y=p2y(pr);
+    svg+=`<line x1="${axisW}" y1="${y}" x2="${chartWidth-rightMargin+8}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+    svg+=`<text x="${axisW-6}" y="${y+3}" text-anchor="end" font-size="9" fill="#4A6080">${pr.toFixed(dec)}</text>`;
+  });
+
+  // lanes
+  lanes.forEach((l,i)=>{
+    const x=axisW+i*(laneW+laneGap);
+    const yTop=p2y(l.vah),yBot=p2y(l.val),h=Math.max(2,yBot-yTop);
+    svg+=`<rect x="${x}" y="${yTop}" width="${laneW}" height="${h}" fill="${l.color}22" stroke="${l.color}" stroke-width="1.3" rx="3"/>`;
+    svg+=`<line x1="${x}" y1="${p2y(l.poc)}" x2="${x+laneW}" y2="${p2y(l.poc)}" stroke="${l.color}" stroke-width="2.5"/>`;
+    svg+=`<text x="${x+laneW/2}" y="${yTop-4}" text-anchor="middle" font-size="8.5" fill="${l.color}" font-weight="700">${l.vah.toFixed(dec)}</text>`;
+    svg+=`<text x="${x+laneW/2}" y="${yBot+11}" text-anchor="middle" font-size="8.5" fill="${l.color}" font-weight="700">${l.val.toFixed(dec)}</text>`;
+    svg+=`<text x="${x+laneW/2}" y="${chartTop+chartHeight+20}" text-anchor="middle" font-size="10" fill="#E2EAF8" font-weight="700">${l.label}${l.isIB?'':' VP'}</text>`;
+  });
+
+  // live price line across all lanes
+  if(refPrice!=null&&refPrice>=minP&&refPrice<=maxP){
+    const ly=p2y(refPrice);
+    const rightEdge=axisW+lanes.length*(laneW+laneGap)-laneGap;
+    svg+=`<line x1="${axisW-4}" y1="${ly}" x2="${rightEdge+4}" y2="${ly}" stroke="#F0B429" stroke-width="1.5" stroke-dasharray="5 3"/>`;
+    svg+=`<text x="${rightEdge+8}" y="${ly+3}" font-size="9.5" fill="#F0B429" font-weight="800">Live ${refPrice.toFixed(dec)}</text>`;
+  }
+
+  // HVN/LVN node ticks on the right margin
+  if(nodes.length){
+    const tickX=axisW+lanes.length*(laneW+laneGap)-laneGap+14;
+    nodes.forEach(n=>{
+      const ny=p2y(n.v);
+      const col=n.type==='HVN'?'#00E676':'#FF3D57';
+      svg+=`<line x1="${tickX}" y1="${ny}" x2="${tickX+16}" y2="${ny}" stroke="${col}" stroke-width="2.5"/>`;
+      svg+=`<text x="${tickX+20}" y="${ny+3}" font-size="8" fill="${col}">${n.type} ${n.v.toFixed(dec)}</text>`;
+    });
+  }
+
+  svg+='</svg>';
+  wrap.innerHTML=svg;
+}
+
 // ── INIT ──────────────────────────────────────────────
 initSB();
 document.getElementById('topDate').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
+fillDefaultPeriodDates();
 const savedUid=localStorage.getItem(UID_KEY);
 if(savedUid){
   uid=savedUid;document.getElementById('loginInput').value=savedUid;
@@ -924,13 +1140,17 @@ document.getElementById('loginInput').addEventListener('keydown',e=>{if(e.key===
 
 </script>
 
-<!-- Supabase table setup — run once in SQL editor:
-DROP TABLE IF EXISTS vp_levels;
-CREATE TABLE vp_levels (
+<!-- Supabase — if you already ran the previous setup, just run this ONE line
+     (non-destructive, keeps your existing data):
+ALTER TABLE vp_levels ADD COLUMN IF NOT EXISTS period_date date;
+
+     If setting up fresh, run the full block below instead:
+CREATE TABLE IF NOT EXISTS vp_levels (
   id bigint generated always as identity primary key,
   user_id text not null,
   instrument text not null,
   period text not null,
+  period_date date,
   vah numeric, poc numeric, val numeric,
   high_price numeric, low_price numeric,
   close_price numeric, open_price numeric, live_price numeric,
